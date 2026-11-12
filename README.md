@@ -2,7 +2,7 @@
 
 免打扰增强。原名 discourse-search-tag-filter，功能变多后改了名字，设置名也从 `search_tag_filter_*` 改成了 `mute_enhancements_*`。
 
-1. [搜索](#搜索)：用户设为免打扰或忽略的标签、类别、用户，在搜索结果里看不到——既不出现它们的话题和帖子，也不出现在结果的用户、类别、标签部分，搜索框里输入 `@`、`#` 时也不会联想出它们。
+1. [搜索](#搜索)：用户设为免打扰或忽略的标签、类别、用户、话题，在搜索结果里看不到——既不出现它们的话题和帖子，也不出现在结果的用户、类别、标签部分，搜索框里输入 `@`、`#` 时也不会联想出它们。
 2. [隐藏群组的 group_users](#隐藏群组的-group_users)：用户资料接口不再暴露用户看不到的群组的 ID。
 3. [免打扰和忽略群组](#免打扰和忽略群组)：用户可以把整个群组设为免打扰或忽略，群组成员随之被免打扰或忽略。
 4. [群组默认屏蔽的用户和群组](#群组默认屏蔽的用户和群组)：管理员可以给群组设置默认免打扰、忽略的用户和群组，新成员加入时自动生效。群组默认免打扰的类别和标签用核心自带的功能。
@@ -18,6 +18,7 @@
 
 - 带有用户已设为免打扰的标签的话题；
 - 用户已设为免打扰的类别里的话题；
+- 用户已设为免打扰的话题；
 - 用户已忽略或已设为免打扰的那些用户发的帖子，以及他们创建的话题；
 - 搜索结果的用户、类别、标签部分里的这些用户、类别、标签；
 - 搜索框里输入 `@`、`#` 时联想出的这些用户、类别、标签，以及完整搜索页“用户”“类别/标签”类型里的它们，见[联想](#联想和完整搜索页的用户类别标签类型)。
@@ -61,6 +62,16 @@
 
 搜索结果的类别部分不显示这些类别，没有例外。
 
+### 免打扰的话题
+
+话题的通知级别是“免打扰”时，整个话题（包括里面的回复）都不出现在搜索结果里，包括[群组给成员屏蔽的话题](#给群组成员屏蔽的话题)。核心的搜索默认不排除这些话题（只有 `in:watching`、`in:tracking` 这种主动筛选），话题列表才会排除。
+
+以下情况不隐藏：
+
+- 在这个话题内搜索，包括用 `topic:话题编号` 过滤器（核心会把它当作在话题内搜索）。
+- 直接输入话题编号或链接搜索（见上面的通用规则）。
+- 把通知级别改回别的级别之后。
+
 ### 忽略和免打扰的用户
 
 隐藏用户已忽略、已设为免打扰的那些用户发的帖子，以及他们创建的话题（包括别人在里面的回复：搜索结果会显示话题标题，标题是这些用户写的）。管理员和版主不会被隐藏：忽略的名单来自核心的 `IgnoredUser.ignored_ids_for`，和话题页隐藏帖子用的是同一个；免打扰的名单按同样的规则排除管理人员。
@@ -88,7 +99,7 @@
 
 把 `DiscourseMuteEnhancements::SearchExtension` prepend 到 `::Search` 上：
 
-- 覆盖 `Search#apply_filters`：先调用 `super`，再依次加上三个过滤器的条件（`MutedTagsFilter`、`MutedCategoriesFilter`、`IgnoredUsersFilter`）。核心在 `Search#posts_query` 里调用 `apply_filters`，所有搜索帖子和话题的路径都经过这里；discourse-ai 的语义搜索也对自己的查询调用它。
+- 覆盖 `Search#apply_filters`：先调用 `super`，再依次加上四个过滤器的条件（`MutedTagsFilter`、`MutedCategoriesFilter`、`MutedTopicsFilter`、`IgnoredUsersFilter`）。核心在 `Search#posts_query` 里调用 `apply_filters`，所有搜索帖子和话题的路径都经过这里；discourse-ai 的语义搜索也对自己的查询调用它。
 - 覆盖 `user_search`、`category_search`、`tags_search`：在 `User`/`Category.where.not(id: ...).scoping { super() }` 里调用核心的方法，不复制核心的查询。`category_search` 进入 scoping 之前先算好 `secure_category_ids`，因为 Guardian 会缓存它，而它本身要查 `Category`。标签用 `Tag.where("tags.id NOT IN (?)", ...)`：核心的 `Tag.visible` 会 `merge` 一个自带 `tags.id` 条件的查询，`merge` 会替换掉同一列上已有的条件，写成 SQL 字符串才不会被丢掉。
 
 为了判断用户明确要求了哪些标签和用户，`tags:`、`#`、`user:`、`@` 过滤器的正则和分词方式复制自核心 `lib/search.rb`；类别是否被明确指定，直接用核心过滤器设置的 `@category_filter_matched`（核心用它来显示搜索优先级为“忽略”的类别）。核心改动这些过滤器时需要同步。
@@ -213,6 +224,7 @@
 - `mute_enhancements_enabled`：总开关，默认打开。
 - `mute_enhancements_search_muted_tags`：搜索里隐藏免打扰的标签，默认打开。另外需要打开核心的 `tagging_enabled`。
 - `mute_enhancements_search_muted_categories`：搜索里隐藏免打扰的类别，默认打开。
+- `mute_enhancements_search_muted_topics`：搜索里隐藏免打扰的话题，默认打开。
 - `mute_enhancements_search_ignored_users`：搜索里隐藏忽略的用户，默认打开。
 - `mute_enhancements_search_muted_users`：搜索里隐藏免打扰的用户，默认打开。
 - `mute_enhancements_hide_invisible_group_users`：`group_users` 只列出看得到的群组，默认打开。

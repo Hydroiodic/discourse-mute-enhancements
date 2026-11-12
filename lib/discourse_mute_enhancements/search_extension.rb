@@ -81,6 +81,10 @@ module DiscourseMuteEnhancements
             filters << MutedCategoriesFilter.new(user:)
           end
 
+          if SiteSetting.mute_enhancements_search_muted_topics
+            filters << MutedTopicsFilter.new(user:)
+          end
+
           if SiteSetting.mute_enhancements_search_ignored_users ||
                SiteSetting.mute_enhancements_search_muted_users
             filters << IgnoredUsersFilter.new(user:, search_context: @search_context, words:)

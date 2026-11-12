@@ -3,6 +3,7 @@ en:
     mute_enhancements_enabled: "Enable the mute enhancements plugin. The settings below turn each feature on or off."
     mute_enhancements_search_muted_tags: "Hide topics with tags the user muted from search results, and leave those tags out of the tags section of the results. Also requires tagging_enabled."
     mute_enhancements_search_muted_categories: "Hide topics in categories the user muted (including subcategories of muted categories) from search results, and leave those categories out of the categories section of the results."
+    mute_enhancements_search_muted_topics: "Hide topics the user muted (including topics muted for the members of a group) from search results."
     mute_enhancements_search_ignored_users: "Hide posts by users the user ignored, and topics they started, from search results, and leave them out of the users section of the results. Admins and moderators are never hidden."
     mute_enhancements_search_muted_users: "Like ignored users, hide users the user muted from search results. Admins and moderators are never hidden."
     mute_enhancements_hide_invisible_group_users: "Only list groups the user can see in group_users of the user profile API (such as /u/username.json), so it does not reveal the IDs of groups the user is in but cannot see. Admins still get the full list."

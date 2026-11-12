@@ -8,6 +8,9 @@ plugins:
   mute_enhancements_search_muted_categories:
     default: true
     client: false
+  mute_enhancements_search_muted_topics:
+    default: true
+    client: false
   mute_enhancements_search_ignored_users:
     default: true
     client: false
