@@ -98,6 +98,12 @@ RSpec.describe Search do
     expect(topic_ids_for("needle")).to contain_exactly(*all_topic_ids)
   end
 
+  it "does not hide anything when muted tags are not filtered" do
+    SiteSetting.search_tag_filter_muted_tags = false
+
+    expect(topic_ids_for("needle")).to contain_exactly(*all_topic_ids)
+  end
+
   it "does not hide anything for anonymous searches, even with default_tags_muted" do
     SiteSetting.default_tags_muted = "muted|othermuted"
 

@@ -1,3 +1,7 @@
 en:
   site_settings:
-    search_tag_filter_enabled: "Hide topics with tags the user has muted from search results."
+    search_tag_filter_enabled: "Hide what users muted or ignored from their search results. The settings below choose what is hidden."
+    search_tag_filter_muted_tags: "Hide topics with tags the user muted. Also needs tagging_enabled."
+    search_tag_filter_muted_categories: "Hide topics in categories the user muted, including subcategories of muted categories."
+    search_tag_filter_ignored_users: "Hide posts by users the user ignored, and topics they started. Staff are never hidden."
+    search_tag_filter_muted_users: "Also hide posts by users the user muted, and topics they started, the same way as ignored users."

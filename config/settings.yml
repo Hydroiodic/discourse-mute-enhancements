@@ -2,3 +2,15 @@ plugins:
   search_tag_filter_enabled:
     default: true
     client: false
+  search_tag_filter_muted_tags:
+    default: true
+    client: false
+  search_tag_filter_muted_categories:
+    default: true
+    client: false
+  search_tag_filter_ignored_users:
+    default: true
+    client: false
+  search_tag_filter_muted_users:
+    default: false
+    client: false

@@ -1,36 +1,22 @@
 # frozen_string_literal: true
 
 module DiscourseSearchTagFilter
-  # Decides which tags to hide from one search and adds the matching condition to the posts query.
-  #
-  # A topic with any tag the searching user muted is hidden, except:
+  # Hides topics with any tag the searching user muted, except:
   #
   # - tags the search explicitly asks for: the tag being searched in (search context), positive
   #   `tags:`/`tag:` filters, and `#tag` / `#tag-group` filters;
   # - topics in a category the user watches, when the user lets watched take precedence over
   #   muted (the `watched_precedence_over_muted` user option), as in topic lists;
   # - personal messages.
-  #
-  # Anonymous searches are not filtered. Unlike topic lists, `default_tags_muted` is not applied
-  # to them: on a login_required site the only anonymous searches are internal ones, such as
-  # discourse-ai's search tool, which should not silently lose those topics.
   class MutedTagsFilter
     # Copies of the matchers of the `tags:` and `#` advanced filters in core's lib/search.rb.
     TAGS_FILTER = /\Atags?:([\p{L}\p{M}0-9,\-_+]+)\z/i
     HASH_FILTER = /\A\#([\p{L}\p{M}0-9\-:=]+)\z/i
 
-    # Same tokenizer as Search#process_advanced_search!.
-    WORD_SCANNER = /(([^" \t\n\x0B\f\r]+)?(("[^"]+")?))/
-
-    def self.applies?(search_context:)
-      SiteSetting.search_tag_filter_enabled && SiteSetting.tagging_enabled &&
-        !search_context.is_a?(Topic)
-    end
-
-    def initialize(user:, search_context:, term:)
+    def initialize(user:, search_context:, words:)
       @user = user
       @search_context = search_context
-      @term = term
+      @words = words
     end
 
     def apply(posts)
@@ -58,20 +44,16 @@ module DiscourseSearchTagFilter
     def hidden_tag_ids
       @hidden_tag_ids ||=
         begin
-          muted = muted_tag_ids
+          muted = TagUser.lookup(@user, :muted).pluck(:tag_id)
           muted.empty? ? [] : muted - requested_tag_ids
         end
     end
 
     private
 
-    def muted_tag_ids
-      @user ? TagUser.lookup(@user, :muted).pluck(:tag_id) : []
-    end
-
     def watched_category_ids
       @watched_category_ids ||=
-        if @user&.user_option&.watched_precedence_over_muted
+        if @user.user_option&.watched_precedence_over_muted
           CategoryUser
             .where(user: @user)
             .where("notification_level >= ?", CategoryUser.notification_levels[:watching])
@@ -86,7 +68,7 @@ module DiscourseSearchTagFilter
       ids << (@search_context.target_tag_id || @search_context.id) if @search_context.is_a?(Tag)
 
       tag_names = []
-      words.each do |word|
+      @words.each do |word|
         if (match = TAGS_FILTER.match(word))
           tag_names.concat(match[1].split(match[1].include?("+") ? "+" : ","))
         elsif (match = HASH_FILTER.match(word))
@@ -132,10 +114,6 @@ module DiscourseSearchTagFilter
     # Topics are tagged with the target of a synonym, never with the synonym itself.
     def target_tag_ids(tags)
       tags.pluck(:id, :target_tag_id).map { |id, target_tag_id| target_tag_id || id }
-    end
-
-    def words
-      @term.to_s.scan(WORD_SCANNER).filter_map { |(word, _)| word.presence&.gsub(/["']/, "") }
     end
   end
 end

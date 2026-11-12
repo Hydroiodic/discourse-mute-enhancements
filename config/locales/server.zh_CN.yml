@@ -1,3 +1,7 @@
 zh_CN:
   site_settings:
-    search_tag_filter_enabled: "在搜索结果中隐藏带有用户已屏蔽标签的话题。"
+    search_tag_filter_enabled: "在搜索结果中隐藏用户屏蔽的内容。具体隐藏哪些由下面几个设置决定。"
+    search_tag_filter_muted_tags: "隐藏带有用户已设为免打扰的标签的话题。还需要打开 tagging_enabled。"
+    search_tag_filter_muted_categories: "隐藏用户已设为免打扰的类别里的话题，包括免打扰类别的子类别。"
+    search_tag_filter_ignored_users: "隐藏用户已忽略的那些用户发的帖子，以及他们创建的话题。管理员和版主不会被隐藏。"
+    search_tag_filter_muted_users: "对用户已设为免打扰的那些用户也同样处理：隐藏他们发的帖子，以及他们创建的话题。"
