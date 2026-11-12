@@ -232,6 +232,23 @@ RSpec.describe "Mute enhancements" do
       expect(page).to have_css(".mute-enhancements-hide-preferences")
       expect(page).to have_css(".mute-enhancements-muted-topics")
     end
+
+    it "is not shown to group owners who are not site admins" do
+      if SiteSetting.respond_to?(:enhanced_ignore_enabled)
+        SiteSetting.enhanced_ignore_enabled = true
+      end
+      owner = Fabricate(:user)
+      group.add_owner(owner)
+      sign_in(owner)
+
+      visit("/g/#{group.name}/manage/membership")
+      expect(page).to have_css(".user-secondary-navigation a[href$='/manage/profile']")
+      expect(page).to have_no_css("a[href$='/manage/user-preferences']")
+
+      visit("/g/#{group.name}/manage/user-preferences")
+      expect(page).to have_current_path("/g/#{group.name}/manage/profile")
+      expect(page).to have_no_css(".mute-enhancements-user-preferences")
+    end
   end
 
   describe "muting topics for a group's members" do
