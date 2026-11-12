@@ -4,7 +4,7 @@ module DiscourseMuteEnhancements
   # Sets the preference pages hidden from a group's members (HiddenPreferences).
   class GroupHidePreferencesController < GroupSettingsController
     # PUT /mute-enhancements/groups/:group_id/hide-preferences
-    #   hidden_pages: comma-separated, from tracking and users; empty for none
+    #   hidden_pages: comma-separated, from notifications, tracking and users; empty for none
     def update
       raise Discourse::InvalidParameters.new(:hidden_pages) if !params.key?(:hidden_pages)
 

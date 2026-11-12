@@ -9,7 +9,7 @@ import { popupAjaxError } from "discourse/lib/ajax-error";
 import { i18n } from "discourse-i18n";
 
 // In the order of the preferences nav.
-const PAGES = ["tracking", "users"];
+const PAGES = ["notifications", "tracking", "users"];
 
 // Group > Manage > User preferences (admins only): preference pages hidden from the group's
 // members, each on its own. Saved as soon as a box is changed.

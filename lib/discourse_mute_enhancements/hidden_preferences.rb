@@ -2,9 +2,9 @@
 
 module DiscourseMuteEnhancements
   # Preference pages hidden from a group's members, chosen by admins on the group's
-  # Manage > User preferences page: Tracking and Users, each on its own (none by default). A
-  # member gets the pages hidden by all their groups in current_user, and the browser hides their
-  # tabs and sends links to them to Account.
+  # Manage > User preferences page: Notifications, Tracking and Users, each on its own (none by
+  # default). A member gets the pages hidden by all their groups in current_user, and the browser
+  # hides their tabs and sends links to them to Account.
   #
   # This only hides the pages. The settings on them still apply, and the server still accepts
   # changes to them, for example from the mute and ignore menu on user cards or the notification
@@ -16,7 +16,7 @@ module DiscourseMuteEnhancements
   # Stored as a comma-separated list in a group custom field, which is deleted when none are hidden.
   module HiddenPreferences
     FIELD = "mute_enhancements_hide_preferences"
-    PAGES = %w[tracking users].freeze
+    PAGES = %w[notifications tracking users].freeze
 
     class InvalidPages < StandardError
     end

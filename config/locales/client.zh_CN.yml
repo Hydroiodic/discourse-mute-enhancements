@@ -3,9 +3,9 @@ zh_CN:
     mute_enhancements:
       group_mutes:
         ignored_groups: "忽略的群组"
-        ignored_groups_instructions: "忽略这些群组里的所有成员，效果和单独忽略每个人一样。以后加入群组的成员也会被忽略，退出群组的会自动取消。管理员和版主不会被忽略。"
+        ignored_groups_instructions: "屏蔽来自这些群组成员的所有帖子、通知和私信。"
         muted_groups: "免打扰的群组"
-        muted_groups_instructions: "把这些群组里的所有成员设为免打扰，效果和单独设置每个人一样。以后加入群组的成员也会被设为免打扰，退出群组的会自动取消。管理员和版主不会被设为免打扰。"
+        muted_groups_instructions: "屏蔽来自这些群组成员的所有通知和私信。"
       default_users:
         title: "新成员默认屏蔽的用户"
         title_with_groups: "新成员默认屏蔽的用户和群组"
@@ -25,6 +25,7 @@ zh_CN:
         title: "对成员隐藏的个人设置页面"
         description: "勾选的页面，这个群组的成员在个人设置里看不到。"
         pages:
+          notifications: "通知（通知方式，以及增强屏蔽等插件的选项）"
           tracking: "跟踪（类别、标签的通知级别和话题跟踪）"
           users: "用户（免打扰、忽略的用户和群组）"
         saved: "已保存"

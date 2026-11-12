@@ -4,6 +4,7 @@
 
 // Routes of each page. Tags is an older page with the tag part of Tracking.
 const ROUTES = {
+  notifications: ["notifications"],
   tracking: ["tracking", "tags"],
   users: ["users"],
 };

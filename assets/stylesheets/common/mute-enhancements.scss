@@ -27,6 +27,13 @@
 
 // See lib/hidden-preferences.js. Core's nav styles set display on these items with more specific
 // selectors, so hiding them needs !important.
+.mute-enhancements-hide-preferences-notifications {
+  .user-nav__preferences-notifications,
+  [data-list-item-name="user-nav-preferences-notifications"] {
+    display: none !important;
+  }
+}
+
 .mute-enhancements-hide-preferences-tracking {
   .user-nav__preferences-tracking,
   [data-list-item-name="user-nav-preferences-tracking"] {

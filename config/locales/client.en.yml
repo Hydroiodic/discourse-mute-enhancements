@@ -3,9 +3,9 @@ en:
     mute_enhancements:
       group_mutes:
         ignored_groups: "Ignored groups"
-        ignored_groups_instructions: "Ignore every member of these groups, as if you ignored each of them. Members who join later are ignored too, and members who leave no longer are. Admins and moderators are never ignored."
+        ignored_groups_instructions: "Suppress all posts, notifications, and PMs from members of these groups."
         muted_groups: "Muted groups"
-        muted_groups_instructions: "Mute every member of these groups, as if you muted each of them. Members who join later are muted too, and members who leave no longer are. Admins and moderators are never muted."
+        muted_groups_instructions: "Suppress all notifications and PMs from members of these groups."
       default_users:
         title: "Users new members mute or ignore"
         title_with_groups: "Users and groups new members mute or ignore"
@@ -26,6 +26,7 @@ en:
         title: "Preference pages hidden from members"
         description: "Members of this group do not see the checked pages in their preferences."
         pages:
+          notifications: "Notifications (how notifications are sent, and options of plugins such as enhanced ignore)"
           tracking: "Tracking (notification levels of categories and tags, topic tracking)"
           users: "Users (muted and ignored users and groups)"
         saved: "Saved"

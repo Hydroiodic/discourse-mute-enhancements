@@ -54,18 +54,22 @@ RSpec.describe DiscourseMuteEnhancements::GroupHidePreferencesController do
       put path, params: { hidden_pages: "tracking,users" }
       expect(response.status).to eq(200)
 
+      put path, params: { hidden_pages: "users,notifications,tracking" }
+      expect(response.parsed_body["hidden_preferences"]).to eq(%w[notifications tracking users])
+
       put path, params: { hidden_pages: "" }
       expect(response.parsed_body["hidden_preferences"]).to eq([])
       expect(GroupCustomField.where(group:, name: "mute_enhancements_hide_preferences")).to be_empty
 
       logs = UserHistory.where(custom_type: "mute_enhancements_group_hide_preferences").order(:id)
-      expect(logs.count).to eq(3)
+      expect(logs.count).to eq(4)
       expect(logs.map(&:details)).to all(include(group.name))
       expect(logs.second.details).to include("tracking, users")
+      expect(logs.third.details).to include("notifications, tracking, users")
     end
 
-    it "rejects unknown pages, including Notifications" do
-      put path, params: { hidden_pages: "users,notifications" }
+    it "rejects unknown pages" do
+      put path, params: { hidden_pages: "users,interface" }
       expect(response.status).to eq(400)
       expect(group_pages).to be_empty
 
