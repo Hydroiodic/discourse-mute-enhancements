@@ -14,7 +14,7 @@ RSpec.describe SearchController do
 
   before do
     SiteSetting.tagging_enabled = true
-    SiteSetting.search_tag_filter_enabled = true
+    SiteSetting.mute_enhancements_enabled = true
     SearchIndexer.enable
     [muted_post, regular_post].each { |post| SearchIndexer.index(post, force: true) }
     TagUser.create!(

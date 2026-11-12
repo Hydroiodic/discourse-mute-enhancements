@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-module DiscourseSearchTagFilter
+module DiscourseMuteEnhancements
   # Hides topics with any tag the searching user muted, except:
   #
   # - tags the search explicitly asks for: the tag being searched in (search context), positive
@@ -26,9 +26,9 @@ module DiscourseSearchTagFilter
         topics.archetype = :private_message
         OR NOT EXISTS (
           SELECT 1
-          FROM topic_tags search_tag_filter_topic_tags
-          WHERE search_tag_filter_topic_tags.topic_id = topics.id
-            AND search_tag_filter_topic_tags.tag_id IN (:tag_ids)
+          FROM topic_tags mute_enhancements_topic_tags
+          WHERE mute_enhancements_topic_tags.topic_id = topics.id
+            AND mute_enhancements_topic_tags.tag_id IN (:tag_ids)
         )
       SQL
       sql << "OR topics.category_id IN (:category_ids)" if watched_category_ids.present?
@@ -44,7 +44,7 @@ module DiscourseSearchTagFilter
     def hidden_tag_ids
       @hidden_tag_ids ||=
         begin
-          muted = TagUser.lookup(@user, :muted).pluck(:tag_id)
+          muted = HiddenIds.tag_ids(@user)
           muted.empty? ? [] : muted - requested_tag_ids
         end
     end

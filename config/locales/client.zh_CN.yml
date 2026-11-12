@@ -1,0 +1,23 @@
+zh_CN:
+  js:
+    mute_enhancements:
+      group_mutes:
+        ignored_groups: "忽略的群组"
+        ignored_groups_instructions: "忽略这些群组里的所有成员，效果和单独忽略每个人一样。以后加入群组的成员也会被忽略，退出群组的会自动取消。管理员和版主不会被忽略。"
+        muted_groups: "免打扰的群组"
+        muted_groups_instructions: "把这些群组里的所有成员设为免打扰，效果和单独设置每个人一样。以后加入群组的成员也会被设为免打扰，退出群组的会自动取消。管理员和版主不会被设为免打扰。"
+      default_users:
+        title: "新成员默认屏蔽的用户"
+        description: "用户加入这个群组时，自动把下面的用户设为忽略或免打扰（他已经单独设置过的除外）。设置记在成员自己的偏好设置里，他之后可以自己取消；退出群组或删掉这里的用户都不会撤销。管理员和版主不能被屏蔽。只有管理员能看到和修改这一项。"
+        ignored: "忽略"
+        muted: "免打扰"
+        save: "保存默认屏蔽的用户"
+        saved: "已保存"
+        saved_and_applied:
+          other: "已保存，并应用到 %{count} 位现有成员"
+  admin_js:
+    admin:
+      logs:
+        staff_actions:
+          actions:
+            mute_enhancements_group_default_users: "修改群组默认屏蔽的用户"

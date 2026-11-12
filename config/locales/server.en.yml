@@ -1,7 +1,13 @@
 en:
   site_settings:
-    search_tag_filter_enabled: "Hide what users muted or ignored from their search results. The settings below choose what is hidden."
-    search_tag_filter_muted_tags: "Hide topics with tags the user muted. Also needs tagging_enabled."
-    search_tag_filter_muted_categories: "Hide topics in categories the user muted, including subcategories of muted categories."
-    search_tag_filter_ignored_users: "Hide posts by users the user ignored, and topics they started. Staff are never hidden."
-    search_tag_filter_muted_users: "Hide posts by users the user muted, and topics they started, the same way as ignored users. Staff are never hidden."
+    mute_enhancements_enabled: "Enable the mute enhancements plugin. The settings below turn each feature on or off."
+    mute_enhancements_search_muted_tags: "Hide topics with tags the user muted from search results, and leave those tags out of the tags section of the results. Also requires tagging_enabled."
+    mute_enhancements_search_muted_categories: "Hide topics in categories the user muted (including subcategories of muted categories) from search results, and leave those categories out of the categories section of the results."
+    mute_enhancements_search_ignored_users: "Hide posts by users the user ignored, and topics they started, from search results, and leave them out of the users section of the results. Admins and moderators are never hidden."
+    mute_enhancements_search_muted_users: "Like ignored users, hide users the user muted from search results. Admins and moderators are never hidden."
+    mute_enhancements_hide_invisible_group_users: "Only list groups the user can see in group_users of the user profile API (such as /u/username.json), so it does not reveal the IDs of groups the user is in but cannot see. Admins still get the full list."
+    mute_enhancements_group_mutes: "Let users mute or ignore whole groups in Preferences → Users. The group's members (except admins and moderators) are muted or ignored, members who join later are too, and members who leave no longer are."
+    mute_enhancements_group_default_users: "Let admins choose, on a group's Manage → Membership page, users that new members of the group mute or ignore by default."
+  mute_enhancements:
+    errors:
+      staff_default_users: "Admins and moderators cannot be muted or ignored: %{usernames}"

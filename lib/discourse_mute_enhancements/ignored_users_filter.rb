@@ -1,8 +1,8 @@
 # frozen_string_literal: true
 
-module DiscourseSearchTagFilter
-  # Hides what users the searching user ignored (`search_tag_filter_ignored_users`) or muted
-  # (`search_tag_filter_muted_users`) wrote: their posts, and topics they started (a result shows
+module DiscourseMuteEnhancements
+  # Hides what users the searching user ignored (`mute_enhancements_search_ignored_users`) or muted
+  # (`mute_enhancements_search_muted_users`) wrote: their posts, and topics they started (a result shows
   # the topic title, even when someone else's reply is what matched). Staff are never hidden, as
   # in topics (IgnoredUser.ignored_ids_for).
   #
@@ -39,25 +39,12 @@ module DiscourseSearchTagFilter
     def hidden_user_ids
       @hidden_user_ids ||=
         begin
-          ids = []
-          if SiteSetting.search_tag_filter_ignored_users
-            ids.concat(IgnoredUser.ignored_ids_for(@user))
-          end
-          ids.concat(muted_user_ids) if SiteSetting.search_tag_filter_muted_users
-          ids.empty? ? [] : ids.uniq - requested_user_ids
+          ids = HiddenIds.user_ids(@user)
+          ids.empty? ? [] : ids - requested_user_ids
         end
     end
 
     private
-
-    # Same exclusions as IgnoredUser.ignored_ids_for: never the user themselves or staff.
-    def muted_user_ids
-      User
-        .where(id: MutedUser.where(user_id: @user.id).select(:muted_user_id))
-        .where(admin: false, moderator: false)
-        .where.not(id: @user.id)
-        .pluck(:id)
-    end
 
     def requested_user_ids
       ids = []

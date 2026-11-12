@@ -1,16 +1,25 @@
 plugins:
-  search_tag_filter_enabled:
+  mute_enhancements_enabled:
     default: true
     client: false
-  search_tag_filter_muted_tags:
+  mute_enhancements_search_muted_tags:
     default: true
     client: false
-  search_tag_filter_muted_categories:
+  mute_enhancements_search_muted_categories:
     default: true
     client: false
-  search_tag_filter_ignored_users:
+  mute_enhancements_search_ignored_users:
     default: true
     client: false
-  search_tag_filter_muted_users:
+  mute_enhancements_search_muted_users:
+    default: true
+    client: false
+  mute_enhancements_hide_invisible_group_users:
+    default: true
+    client: false
+  mute_enhancements_group_mutes:
+    default: true
+    client: false
+  mute_enhancements_group_default_users:
     default: true
     client: false

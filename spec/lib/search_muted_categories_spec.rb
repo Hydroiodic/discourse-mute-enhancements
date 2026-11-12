@@ -47,7 +47,7 @@ RSpec.describe Search do
   end
 
   before do
-    SiteSetting.search_tag_filter_enabled = true
+    SiteSetting.mute_enhancements_enabled = true
     SearchIndexer.enable
     Post.where(topic_id: all_topic_ids).each { |post| SearchIndexer.index(post, force: true) }
 
@@ -100,13 +100,13 @@ RSpec.describe Search do
   end
 
   it "does not hide anything when muted categories are not filtered" do
-    SiteSetting.search_tag_filter_muted_categories = false
+    SiteSetting.mute_enhancements_search_muted_categories = false
 
     expect(topic_ids_for("needle")).to contain_exactly(*all_topic_ids)
   end
 
   it "does not hide anything when the plugin is disabled" do
-    SiteSetting.search_tag_filter_enabled = false
+    SiteSetting.mute_enhancements_enabled = false
 
     expect(topic_ids_for("needle")).to contain_exactly(*all_topic_ids)
   end

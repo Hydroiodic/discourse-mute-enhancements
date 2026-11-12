@@ -1,7 +1,13 @@
 zh_CN:
   site_settings:
-    search_tag_filter_enabled: "在搜索结果中隐藏用户屏蔽的内容。具体隐藏哪些由下面几个设置决定。"
-    search_tag_filter_muted_tags: "隐藏带有用户已设为免打扰的标签的话题。还需要打开 tagging_enabled。"
-    search_tag_filter_muted_categories: "隐藏用户已设为免打扰的类别里的话题，包括免打扰类别的子类别。"
-    search_tag_filter_ignored_users: "隐藏用户已忽略的那些用户发的帖子，以及他们创建的话题。管理员和版主不会被隐藏。"
-    search_tag_filter_muted_users: "和忽略的用户一样，隐藏用户已设为免打扰的那些用户发的帖子，以及他们创建的话题。管理员和版主不会被隐藏。"
+    mute_enhancements_enabled: "打开免打扰增强插件。具体功能由下面几个设置分别控制。"
+    mute_enhancements_search_muted_tags: "搜索结果中隐藏带有用户已设为免打扰的标签的话题，搜索结果的标签部分也不显示这些标签。还需要打开 tagging_enabled。"
+    mute_enhancements_search_muted_categories: "搜索结果中隐藏用户已设为免打扰的类别（包括免打扰类别的子类别）里的话题，搜索结果的类别部分也不显示这些类别。"
+    mute_enhancements_search_ignored_users: "搜索结果中隐藏用户已忽略的那些用户发的帖子和他们创建的话题，搜索结果的用户部分也不显示他们。管理员和版主不会被隐藏。"
+    mute_enhancements_search_muted_users: "和忽略的用户一样，在搜索结果中隐藏用户已设为免打扰的那些用户。管理员和版主不会被隐藏。"
+    mute_enhancements_hide_invisible_group_users: "用户资料接口（例如 /u/用户名.json）的 group_users 只列出用户能看到的群组，不暴露用户所在、但对他不可见的群组的 ID。管理员仍能看到全部。"
+    mute_enhancements_group_mutes: "允许用户在 个人设置 → 用户 里把整个群组设为免打扰或忽略，群组里的成员（管理员和版主除外）随之被设为免打扰或忽略，以后加入的成员自动生效，退出的成员自动取消。"
+    mute_enhancements_group_default_users: "允许管理员在群组的 管理 → 成员资格 页面设置新成员默认免打扰和忽略的用户。"
+  mute_enhancements:
+    errors:
+      staff_default_users: "管理员和版主不能被设为免打扰或忽略：%{usernames}"

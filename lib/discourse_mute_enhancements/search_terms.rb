@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-module DiscourseSearchTagFilter
+module DiscourseMuteEnhancements
   module SearchTerms
     # Same tokenizer as Search#process_advanced_search!.
     WORD_SCANNER = /(([^" \t\n\x0B\f\r]+)?(("[^"]+")?))/

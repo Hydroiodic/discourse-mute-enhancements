@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-module DiscourseSearchTagFilter
+module DiscourseMuteEnhancements
   # Hides topics in categories the searching user muted. That includes subcategories that inherit
   # the mute from a parent and, with `mute_all_categories_by_default`, every category the user has
   # not set a level for (CategoryUser.muted_category_ids). As in topic lists, a topic is still
@@ -25,18 +25,18 @@ module DiscourseSearchTagFilter
         OR topics.category_id NOT IN (:category_ids)
         OR EXISTS (
           SELECT 1
-          FROM topic_users search_tag_filter_topic_users
-          WHERE search_tag_filter_topic_users.topic_id = topics.id
-            AND search_tag_filter_topic_users.user_id = :user_id
-            AND search_tag_filter_topic_users.notification_level > :regular
+          FROM topic_users mute_enhancements_topic_users
+          WHERE mute_enhancements_topic_users.topic_id = topics.id
+            AND mute_enhancements_topic_users.user_id = :user_id
+            AND mute_enhancements_topic_users.notification_level > :regular
         )
       SQL
       sql << <<~SQL if watched_tag_ids.present?
           OR EXISTS (
             SELECT 1
-            FROM topic_tags search_tag_filter_watched_tags
-            WHERE search_tag_filter_watched_tags.topic_id = topics.id
-              AND search_tag_filter_watched_tags.tag_id IN (:tag_ids)
+            FROM topic_tags mute_enhancements_watched_tags
+            WHERE mute_enhancements_watched_tags.topic_id = topics.id
+              AND mute_enhancements_watched_tags.tag_id IN (:tag_ids)
           )
         SQL
 

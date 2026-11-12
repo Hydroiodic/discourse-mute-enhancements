@@ -39,7 +39,7 @@ RSpec.describe Search do
   let(:replies) { [*ignored_replies, *muted_replies, regular_reply] }
 
   before do
-    SiteSetting.search_tag_filter_enabled = true
+    SiteSetting.mute_enhancements_enabled = true
     SearchIndexer.enable
     Post
       .where(topic_id: replies.map(&:topic_id))
@@ -64,26 +64,26 @@ RSpec.describe Search do
   end
 
   it "only hides ignored users when muted users are not filtered" do
-    SiteSetting.search_tag_filter_muted_users = false
+    SiteSetting.mute_enhancements_search_muted_users = false
 
     expect(post_ids_for("needle")).to contain_exactly(*muted_replies.map(&:id), regular_reply.id)
   end
 
   it "only hides muted users when ignored users are not filtered" do
-    SiteSetting.search_tag_filter_ignored_users = false
+    SiteSetting.mute_enhancements_search_ignored_users = false
 
     expect(post_ids_for("needle")).to contain_exactly(*ignored_replies.map(&:id), regular_reply.id)
   end
 
   it "does not hide anything when neither is filtered" do
-    SiteSetting.search_tag_filter_ignored_users = false
-    SiteSetting.search_tag_filter_muted_users = false
+    SiteSetting.mute_enhancements_search_ignored_users = false
+    SiteSetting.mute_enhancements_search_muted_users = false
 
     expect(post_ids_for("needle")).to contain_exactly(*replies.map(&:id))
   end
 
   it "does not hide anything when the plugin is disabled" do
-    SiteSetting.search_tag_filter_enabled = false
+    SiteSetting.mute_enhancements_enabled = false
 
     expect(post_ids_for("needle")).to contain_exactly(*replies.map(&:id))
   end
