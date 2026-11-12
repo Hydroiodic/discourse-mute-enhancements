@@ -6,13 +6,25 @@ import { service } from "@ember/service";
 import GroupDefaultNotificationsModal from "discourse/components/modal/group-default-notifications";
 import { ajax } from "discourse/lib/ajax";
 import { popupAjaxError } from "discourse/lib/ajax-error";
+import GroupChooser from "discourse/select-kit/components/group-chooser";
 import UserChooser from "discourse/select-kit/components/user-chooser";
 import DButton from "discourse/ui-kit/d-button";
 import dIcon from "discourse/ui-kit/helpers/d-icon";
 import { i18n } from "discourse-i18n";
 
-// Group → Manage → Membership (admins only): users that members of the group mute or ignore by
-// default. Has its own Save button, as the page's Save button only saves core's fields.
+const NO_GROUPS = { muted_group_ids: [], ignored_group_ids: [] };
+
+function sameItems(a, b) {
+  return [...a].sort().join(",") === [...b].sort().join(",");
+}
+
+function addedItems(current, saved) {
+  return current.filter((item) => !saved.includes(item)).length;
+}
+
+// Group → Manage → Membership (admins only): users, and groups when group mutes are enabled, that
+// members of the group mute or ignore by default. Has its own Save button, as the page's Save
+// button only saves core's fields.
 export default class MuteEnhancementsDefaultUsers extends Component {
   static shouldRender(args) {
     return (
@@ -26,6 +38,8 @@ export default class MuteEnhancementsDefaultUsers extends Component {
 
   @tracked muted = [...this.saved.muted_usernames];
   @tracked ignored = [...this.saved.ignored_usernames];
+  @tracked mutedGroupIds = [...this.savedGroups.muted_group_ids];
+  @tracked ignoredGroupIds = [...this.savedGroups.ignored_group_ids];
   @tracked saving = false;
 
   get group() {
@@ -36,10 +50,34 @@ export default class MuteEnhancementsDefaultUsers extends Component {
     return this.group.mute_enhancements_default_users;
   }
 
+  // Missing when group mutes are disabled.
+  get withGroups() {
+    return this.group.mute_enhancements_default_groups !== undefined;
+  }
+
+  get savedGroups() {
+    return this.group.mute_enhancements_default_groups ?? NO_GROUPS;
+  }
+
+  // A group is either muted or ignored, so each list leaves out the groups in the other one.
+  get mutableGroups() {
+    return this.savedGroups.available_groups.filter(
+      (group) => !this.ignoredGroupIds.includes(group.id)
+    );
+  }
+
+  get ignorableGroups() {
+    return this.savedGroups.available_groups.filter(
+      (group) => !this.mutedGroupIds.includes(group.id)
+    );
+  }
+
   get dirty() {
     return (
-      this.muted.join(",") !== this.saved.muted_usernames.join(",") ||
-      this.ignored.join(",") !== this.saved.ignored_usernames.join(",")
+      !sameItems(this.muted, this.saved.muted_usernames) ||
+      !sameItems(this.ignored, this.saved.ignored_usernames) ||
+      !sameItems(this.mutedGroupIds, this.savedGroups.muted_group_ids) ||
+      !sameItems(this.ignoredGroupIds, this.savedGroups.ignored_group_ids)
     );
   }
 
@@ -47,11 +85,10 @@ export default class MuteEnhancementsDefaultUsers extends Component {
   // current members.
   get addedCount() {
     return (
-      this.muted.filter((name) => !this.saved.muted_usernames.includes(name))
-        .length +
-      this.ignored.filter(
-        (name) => !this.saved.ignored_usernames.includes(name)
-      ).length
+      addedItems(this.muted, this.saved.muted_usernames) +
+      addedItems(this.ignored, this.saved.ignored_usernames) +
+      addedItems(this.mutedGroupIds, this.savedGroups.muted_group_ids) +
+      addedItems(this.ignoredGroupIds, this.savedGroups.ignored_group_ids)
     );
   }
 
@@ -63,6 +100,16 @@ export default class MuteEnhancementsDefaultUsers extends Component {
   @action
   onChangeIgnored(usernames) {
     this.ignored = usernames;
+  }
+
+  @action
+  onChangeMutedGroups(ids) {
+    this.mutedGroupIds = ids;
+  }
+
+  @action
+  onChangeIgnoredGroups(ids) {
+    this.ignoredGroupIds = ids;
   }
 
   @action
@@ -79,18 +126,21 @@ export default class MuteEnhancementsDefaultUsers extends Component {
       }
     }
 
+    const data = {
+      muted_usernames: this.muted.join(","),
+      ignored_usernames: this.ignored.join(","),
+      update_existing_users: updateExistingUsers,
+    };
+    if (this.withGroups) {
+      data.muted_group_ids = this.mutedGroupIds.join(",");
+      data.ignored_group_ids = this.ignoredGroupIds.join(",");
+    }
+
     this.saving = true;
     try {
       const result = await ajax(
         `/mute-enhancements/groups/${this.group.id}/default-users`,
-        {
-          type: "PUT",
-          data: {
-            muted_usernames: this.muted.join(","),
-            ignored_usernames: this.ignored.join(","),
-            update_existing_users: updateExistingUsers,
-          },
-        }
+        { type: "PUT", data }
       );
 
       this.group.set("mute_enhancements_default_users", {
@@ -99,6 +149,16 @@ export default class MuteEnhancementsDefaultUsers extends Component {
       });
       this.muted = [...result.muted_usernames];
       this.ignored = [...result.ignored_usernames];
+
+      if (this.withGroups) {
+        this.group.set("mute_enhancements_default_groups", {
+          ...this.savedGroups,
+          muted_group_ids: result.muted_group_ids,
+          ignored_group_ids: result.ignored_group_ids,
+        });
+        this.mutedGroupIds = [...result.muted_group_ids];
+        this.ignoredGroupIds = [...result.ignored_group_ids];
+      }
 
       this.toasts.success({
         duration: "short",
@@ -120,11 +180,20 @@ export default class MuteEnhancementsDefaultUsers extends Component {
   <template>
     <div class="control-group mute-enhancements-default-users">
       <label class="control-label">
-        {{i18n "mute_enhancements.default_users.title"}}
+        {{#if this.withGroups}}
+          {{i18n "mute_enhancements.default_users.title_with_groups"}}
+        {{else}}
+          {{i18n "mute_enhancements.default_users.title"}}
+        {{/if}}
       </label>
       <div class="control-instructions">
         {{i18n "mute_enhancements.default_users.description"}}
       </div>
+      {{#if this.withGroups}}
+        <div class="control-instructions">
+          {{i18n "mute_enhancements.default_users.groups_description"}}
+        </div>
+      {{/if}}
 
       <label>
         {{dIcon "far-eye-slash"}}
@@ -137,6 +206,20 @@ export default class MuteEnhancementsDefaultUsers extends Component {
         @value={{this.ignored}}
       />
 
+      {{#if this.withGroups}}
+        <label>
+          {{dIcon "far-eye-slash"}}
+          {{i18n "mute_enhancements.default_users.ignored_groups"}}
+        </label>
+        <GroupChooser
+          class="mute-enhancements-default-ignored-groups"
+          @content={{this.ignorableGroups}}
+          @labelProperty="name"
+          @onChange={{this.onChangeIgnoredGroups}}
+          @value={{this.ignoredGroupIds}}
+        />
+      {{/if}}
+
       <label>
         {{dIcon "d-muted"}}
         {{i18n "mute_enhancements.default_users.muted"}}
@@ -147,6 +230,20 @@ export default class MuteEnhancementsDefaultUsers extends Component {
         @options={{hash excludedUsernames=this.ignored}}
         @value={{this.muted}}
       />
+
+      {{#if this.withGroups}}
+        <label>
+          {{dIcon "d-muted"}}
+          {{i18n "mute_enhancements.default_users.muted_groups"}}
+        </label>
+        <GroupChooser
+          class="mute-enhancements-default-muted-groups"
+          @content={{this.mutableGroups}}
+          @labelProperty="name"
+          @onChange={{this.onChangeMutedGroups}}
+          @value={{this.mutedGroupIds}}
+        />
+      {{/if}}
 
       <DButton
         class="btn-default mute-enhancements-save-default-users"

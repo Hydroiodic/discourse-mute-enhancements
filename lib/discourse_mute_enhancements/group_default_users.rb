@@ -35,8 +35,8 @@ module DiscourseMuteEnhancements
       end
     end
 
-    # Replaces the group's defaults. Returns the number of current members the new defaults were
-    # applied to (0 unless update_existing_users).
+    # Replaces the group's defaults. Returns the ids of current members who got a new row (none
+    # unless update_existing_users).
     def self.update(group, muted_usernames:, ignored_usernames:, update_existing_users:)
       ignored = find_users(ignored_usernames)
       muted = find_users(muted_usernames) - ignored
@@ -63,18 +63,18 @@ module DiscourseMuteEnhancements
         end
       end
 
-      return 0 if !update_existing_users || changed.empty?
+      return [] if !update_existing_users || changed.empty?
       apply(group, nil, only_target_ids: changed.keys)
     end
 
     # Gives the given members of the group (all members when nil) the group's defaults, or only
-    # the defaults for only_target_ids. Returns how many members got a new row.
+    # the defaults for only_target_ids. Returns the ids of members who got a new row.
     def self.apply(group, member_ids, only_target_ids: nil)
-      return 0 if !enabled? || group.automatic || member_ids&.empty?
+      return [] if !enabled? || group.automatic || member_ids&.empty?
 
       targets = GroupDefaultUser.where(group_id: group.id)
       targets = targets.where(target_user_id: only_target_ids) if only_target_ids
-      return 0 if !targets.exists?
+      return [] if !targets.exists?
 
       params = {
         group_id: group.id,
@@ -102,7 +102,7 @@ module DiscourseMuteEnhancements
 
       # summarized_at keeps these ignores out of Jobs::IgnoredUsersSummary's count, which would
       # otherwise tell moderators the default users are ignored by many users.
-      DB.query_single(<<~SQL, params.merge(mute: LEVELS[:mute], ignore: LEVELS[:ignore])).first.to_i
+      DB.query_single(<<~SQL, params.merge(mute: LEVELS[:mute], ignore: LEVELS[:ignore]))
         WITH pairs AS (#{pairs}),
         muted AS (
           INSERT INTO muted_users (user_id, muted_user_id, created_at, updated_at)
@@ -116,7 +116,7 @@ module DiscourseMuteEnhancements
           ON CONFLICT DO NOTHING
           RETURNING user_id
         )
-        SELECT COUNT(DISTINCT user_id) FROM (SELECT user_id FROM muted UNION ALL SELECT user_id FROM ignored) x
+        SELECT user_id FROM muted UNION SELECT user_id FROM ignored
       SQL
     end
 

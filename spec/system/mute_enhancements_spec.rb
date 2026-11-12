@@ -142,6 +142,9 @@ RSpec.describe "Mute enhancements" do
     let(:default_muted) do
       PageObjects::Components::SelectKit.new(".select-kit.mute-enhancements-default-muted-users")
     end
+    let(:default_ignored_groups) do
+      PageObjects::Components::SelectKit.new(".select-kit.mute-enhancements-default-ignored-groups")
+    end
     let(:default_notifications_modal) { PageObjects::Modals::GroupDefaultNotifications.new }
 
     it "saves the defaults and applies them to current members when asked" do
@@ -164,6 +167,31 @@ RSpec.describe "Mute enhancements" do
 
       page.refresh
       expect(default_muted).to have_selected_name(spammer.username)
+    end
+
+    it "saves default groups and applies them to current members when asked" do
+      spam_group = Fabricate(:group, name: "spam_group")
+      spam_group.add(spammer)
+
+      sign_in(admin)
+      visit("/g/#{group.name}/manage/membership")
+
+      default_ignored_groups.expand
+      expect(default_ignored_groups).to have_no_option_value(group.id)
+      default_ignored_groups.select_row_by_value(spam_group.id)
+      default_ignored_groups.collapse
+
+      find(".mute-enhancements-save-default-users").click
+      default_notifications_modal.click_yes
+
+      expect(page).to have_css(".mute-enhancements-save-default-users[disabled]")
+      expect(
+        DiscourseMuteEnhancements::GroupMute.where(user: member).pluck(:group_id, :level),
+      ).to contain_exactly([spam_group.id, DiscourseMuteEnhancements::LEVELS[:ignore]])
+      expect(IgnoredUser.where(user: member).pluck(:ignored_user_id)).to contain_exactly(spammer.id)
+
+      page.refresh
+      expect(default_ignored_groups).to have_selected_name(spam_group.name)
     end
 
     it "is not shown to moderators who manage groups" do

@@ -158,5 +158,186 @@ RSpec.describe DiscourseMuteEnhancements::GroupDefaultUsersController do
     sign_in(moderator)
     get "/groups/#{group.name}.json"
     expect(response.parsed_body["group"]).not_to have_key("mute_enhancements_default_users")
+    expect(response.parsed_body["group"]).not_to have_key("mute_enhancements_default_groups")
+  end
+
+  describe "default groups" do
+    fab!(:loud_group) { Fabricate(:group, name: "loud") }
+    fab!(:loud_member) { Fabricate(:user).tap { |u| loud_group.add(u) } }
+    fab!(:noisy_group) { Fabricate(:group, name: "noisy") }
+    fab!(:noisy_member) { Fabricate(:user).tap { |u| noisy_group.add(u) } }
+
+    def group_mutes(user)
+      DiscourseMuteEnhancements::GroupMute.where(user:).pluck(:group_id, :level).to_h
+    end
+
+    def save_groups(muted: noisy_group.id.to_s, ignored: loud_group.id.to_s, **params)
+      put path,
+          params: {
+            muted_usernames: "",
+            ignored_usernames: "",
+            muted_group_ids: muted,
+            ignored_group_ids: ignored,
+            **params,
+          }
+    end
+
+    before { sign_in(admin) }
+
+    it "gives members who join a group mute of their own, which follows that group" do
+      save_groups
+
+      expect(response.status).to eq(200)
+      expect(response.parsed_body).to include(
+        "muted_group_ids" => [noisy_group.id],
+        "ignored_group_ids" => [loud_group.id],
+        "applied_user_count" => 0,
+      )
+      expect(group_mutes(member)).to be_empty
+
+      newcomer = Fabricate(:user)
+      group.add(newcomer)
+      expect(group_mutes(newcomer)).to eq(
+        noisy_group.id => DiscourseMuteEnhancements::LEVELS[:mute],
+        loud_group.id => DiscourseMuteEnhancements::LEVELS[:ignore],
+      )
+      expect(muted_ids(newcomer)).to contain_exactly(noisy_member.id)
+      expect(ignored_ids(newcomer)).to contain_exactly(loud_member.id)
+
+      later = Fabricate(:user)
+      loud_group.add(later)
+      expect(ignored_ids(newcomer)).to contain_exactly(loud_member.id, later.id)
+    end
+
+    it "gives current members the groups that were added when asked, counting each member once" do
+      save_groups(ignored: "", muted_usernames: spammer.username, update_existing_users: true)
+      expect(response.parsed_body["applied_user_count"]).to eq(1)
+
+      save_groups(update_existing_users: true)
+      expect(response.parsed_body["applied_user_count"]).to eq(1)
+      expect(group_mutes(member).keys).to contain_exactly(noisy_group.id, loud_group.id)
+      expect(muted_ids(member)).to contain_exactly(spammer.id, noisy_member.id)
+      expect(ignored_ids(member)).to contain_exactly(loud_member.id)
+    end
+
+    it "does not change a group the member already muted or ignored" do
+      DiscourseMuteEnhancements::GroupMute.create!(
+        user: member,
+        group: loud_group,
+        level: DiscourseMuteEnhancements::LEVELS[:mute],
+      )
+
+      save_groups(update_existing_users: true)
+
+      expect(group_mutes(member)).to eq(
+        noisy_group.id => DiscourseMuteEnhancements::LEVELS[:mute],
+        loud_group.id => DiscourseMuteEnhancements::LEVELS[:mute],
+      )
+    end
+
+    it "leaves the group mutes in place when defaults are removed or members leave" do
+      save_groups(update_existing_users: true)
+      save_groups(muted: "", ignored: "")
+      group.remove(member)
+
+      expect(DiscourseMuteEnhancements::GroupDefaultGroup.count).to eq(0)
+      expect(group_mutes(member).keys).to contain_exactly(noisy_group.id, loud_group.id)
+    end
+
+    it "ignores a group that is in both lists" do
+      save_groups(muted: "#{noisy_group.id},#{loud_group.id}")
+      expect(response.parsed_body).to include(
+        "muted_group_ids" => [noisy_group.id],
+        "ignored_group_ids" => [loud_group.id],
+      )
+    end
+
+    it "rejects groups members could not mute themselves, and saves nothing" do
+      hidden = Fabricate(:group, name: "hidden", visibility_level: Group.visibility_levels[:owners])
+      secret_members =
+        Fabricate(
+          :group,
+          name: "secret_members",
+          members_visibility_level: Group.visibility_levels[:members],
+        )
+
+      [hidden, secret_members].each do |rejected|
+        save_groups(ignored: rejected.id.to_s, muted_usernames: spammer.username)
+        expect(response.status).to eq(422)
+        expect(response.parsed_body["errors"].first).to include(rejected.name)
+      end
+
+      save_groups(ignored: Group::AUTO_GROUPS[:trust_level_1].to_s)
+      expect(response.status).to eq(422)
+      save_groups(ignored: group.id.to_s)
+      expect(response.status).to eq(422)
+
+      expect(DiscourseMuteEnhancements::GroupDefaultGroup.count).to eq(0)
+      expect(DiscourseMuteEnhancements::GroupDefaultUser.count).to eq(0)
+    end
+
+    it "keeps a default whose group was hidden later, without giving it to anyone" do
+      save_groups
+      loud_group.update!(visibility_level: Group.visibility_levels[:owners])
+
+      save_groups(update_existing_users: true)
+      expect(response.status).to eq(200)
+      expect(response.parsed_body["ignored_group_ids"]).to eq([loud_group.id])
+
+      newcomer = Fabricate(:user)
+      group.add(newcomer)
+      expect(group_mutes(newcomer).keys).to contain_exactly(noisy_group.id)
+    end
+
+    it "leaves the default groups alone when they are not sent" do
+      save_groups
+      save
+      expect(DiscourseMuteEnhancements::GroupDefaultGroup.count).to eq(2)
+    end
+
+    it "logs the groups" do
+      save_groups
+      log = UserHistory.where(custom_type: "mute_enhancements_group_default_users").last
+      expect(log.details).to include("loud", "noisy")
+    end
+
+    it "shows the defaults and the groups to choose from on the group" do
+      hidden = Fabricate(:group, name: "hidden", visibility_level: Group.visibility_levels[:owners])
+      save_groups
+
+      get "/groups/#{group.name}.json"
+      defaults = response.parsed_body["group"]["mute_enhancements_default_groups"]
+      expect(defaults).to include(
+        "muted_group_ids" => [noisy_group.id],
+        "ignored_group_ids" => [loud_group.id],
+      )
+      names = defaults["available_groups"].map { |g| g["name"] }
+      expect(names).to include("loud", "noisy")
+      expect(names).not_to include(group.name, hidden.name, "trust_level_1")
+    end
+
+    it "removes the defaults with either group" do
+      save_groups
+      loud_group.destroy!
+      expect(DiscourseMuteEnhancements::GroupDefaultGroup.pluck(:target_group_id)).to eq(
+        [noisy_group.id],
+      )
+
+      group.destroy!
+      expect(DiscourseMuteEnhancements::GroupDefaultGroup.count).to eq(0)
+    end
+
+    it "is off without group mutes" do
+      SiteSetting.mute_enhancements_group_mutes = false
+      save_groups(muted_usernames: spammer.username)
+
+      expect(response.status).to eq(200)
+      expect(response.parsed_body).not_to have_key("muted_group_ids")
+      expect(DiscourseMuteEnhancements::GroupDefaultGroup.count).to eq(0)
+      expect(DiscourseMuteEnhancements::GroupDefaultUser.count).to eq(1)
+
+      get "/groups/#{group.name}.json"
+      expect(response.parsed_body["group"]).not_to have_key("mute_enhancements_default_groups")
+    end
   end
 end

@@ -7,7 +7,8 @@ zh_CN:
     mute_enhancements_search_muted_users: "和忽略的用户一样，在搜索结果中隐藏用户已设为免打扰的那些用户。管理员和版主不会被隐藏。"
     mute_enhancements_hide_invisible_group_users: "用户资料接口（例如 /u/用户名.json）的 group_users 只列出用户能看到的群组，不暴露用户所在、但对他不可见的群组的 ID。管理员仍能看到全部。"
     mute_enhancements_group_mutes: "允许用户在 个人设置 → 用户 里把整个群组设为免打扰或忽略，群组里的成员（管理员和版主除外）随之被设为免打扰或忽略，以后加入的成员自动生效，退出的成员自动取消。"
-    mute_enhancements_group_default_users: "允许管理员在群组的 管理 → 成员资格 页面设置新成员默认免打扰和忽略的用户。"
+    mute_enhancements_group_default_users: "允许管理员在群组的 管理 → 成员资格 页面设置新成员默认免打扰和忽略的用户；同时打开 mute_enhancements_group_mutes 时，还可以设置默认免打扰和忽略的群组。"
   mute_enhancements:
     errors:
       staff_default_users: "管理员和版主不能被设为免打扰或忽略：%{usernames}"
+      invalid_default_groups: "这些群组不能设为默认屏蔽的群组：%{groups}。只能选所有登录用户都能看到、也能看到成员的群组，不能是自动群组或这个群组本身。"

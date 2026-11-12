@@ -34,8 +34,10 @@ after_initialize do
   require_relative "app/models/discourse_mute_enhancements/group_mute"
   require_relative "app/models/discourse_mute_enhancements/derived_mute"
   require_relative "app/models/discourse_mute_enhancements/group_default_user"
+  require_relative "app/models/discourse_mute_enhancements/group_default_group"
   require_relative "lib/discourse_mute_enhancements/group_mutes"
   require_relative "lib/discourse_mute_enhancements/group_default_users"
+  require_relative "lib/discourse_mute_enhancements/group_default_groups"
   require_relative "lib/discourse_mute_enhancements/user_serializer_extension"
   require_relative "app/controllers/discourse_mute_enhancements/group_default_users_controller"
   require_relative "app/jobs/scheduled/mute_enhancements_reconcile_group_mutes"
@@ -97,7 +99,7 @@ after_initialize do
     DiscourseMuteEnhancements::GroupMutes.apply_user_update(user, attributes)
   end
 
-  # Default muted and ignored users for a group's members (group → Manage → Membership)
+  # Default muted and ignored users and groups for a group's members (group → Manage → Membership)
 
   add_to_serializer(
     :group_show,
@@ -107,10 +109,22 @@ after_initialize do
     end,
   ) { DiscourseMuteEnhancements::GroupDefaultUsers.usernames(object) }
 
-  # Keeping both in sync with group membership
+  add_to_serializer(
+    :group_show,
+    :mute_enhancements_default_groups,
+    include_condition: -> do
+      DiscourseMuteEnhancements::GroupDefaultGroups.enabled? && scope.is_admin? && !object.automatic
+    end,
+  ) { DiscourseMuteEnhancements::GroupDefaultGroups.serialize(object) }
 
+  # Keeping them in sync with group membership
+
+  # Default users go first, so a user the admin chose by name always gets the level chosen for
+  # them. A default group can still add an ignore on top of that mute, as when members set both
+  # up themselves.
   on(:user_added_to_group) do |user, group, **|
     DiscourseMuteEnhancements::GroupDefaultUsers.apply(group, [user.id])
+    DiscourseMuteEnhancements::GroupDefaultGroups.apply(group, [user.id])
     DiscourseMuteEnhancements::GroupMutes.member_changed(group, user)
   end
 
@@ -121,5 +135,6 @@ after_initialize do
   on(:group_destroyed) do |group, _user_ids|
     DiscourseMuteEnhancements::GroupMutes.group_destroyed(group.id)
     DiscourseMuteEnhancements::GroupDefaultUser.where(group_id: group.id).delete_all
+    DiscourseMuteEnhancements::GroupDefaultGroups.group_destroyed(group.id)
   end
 end

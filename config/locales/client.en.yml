@@ -8,10 +8,14 @@ en:
         muted_groups_instructions: "Mute every member of these groups, as if you muted each of them. Members who join later are muted too, and members who leave no longer are. Admins and moderators are never muted."
       default_users:
         title: "Users new members mute or ignore"
+        title_with_groups: "Users and groups new members mute or ignore"
         description: "When someone joins this group, they ignore or mute the users below, unless they already set them otherwise. This goes into the member's own preferences, so they can undo it later; leaving the group or removing a user here does not undo it. Admins and moderators cannot be muted or ignored. Only admins can see and change this."
-        ignored: "Ignore"
-        muted: "Mute"
-        save: "Save default muted and ignored users"
+        groups_description: "The same goes for groups: someone who joins ignores or mutes the groups below, unless they already muted or ignored that group, just as if they had chosen it in Preferences → Users, so people who join that group later are muted or ignored too. Only groups that every signed-in user can see, along with their members, can be chosen."
+        ignored: "Ignored users"
+        muted: "Muted users"
+        ignored_groups: "Ignored groups"
+        muted_groups: "Muted groups"
+        save: "Save defaults"
         saved: "Saved"
         saved_and_applied:
           one: "Saved and applied to %{count} existing member"
@@ -21,4 +25,4 @@ en:
       logs:
         staff_actions:
           actions:
-            mute_enhancements_group_default_users: "change group default muted users"
+            mute_enhancements_group_default_users: "change group default muted users and groups"
