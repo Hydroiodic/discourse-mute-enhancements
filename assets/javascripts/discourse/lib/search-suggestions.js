@@ -8,8 +8,8 @@ import Category from "discourse/models/category";
 // search's "users" and "categories/tags" types use the same lookups. So do mentions in the
 // composer and chat and the user and tag choosers, which should still list everyone. Core passes
 // no options through to these lookups that would tell them apart, so lookups count as made from
-// search when the focus is in a search box, or when they are for the term of a full page search
-// of those two types. Those lookups leave out what the user muted or ignored: the server leaves
+// search when the focus is in a search box, or when the full page search is searching for their
+// term with one of those two types. Those lookups leave out what the user muted or ignored: the server leaves
 // out users and tags when the request has PARAM (see SearchSuggestions in the plugin's lib), and
 // categories are left out here.
 
@@ -22,7 +22,7 @@ const SEARCH_BOX_SELECTOR = ".search-menu-container, .search-bar__field";
 const PAGE_SEARCH_TYPES = ["users", "categories_tags"];
 
 let currentUser = null;
-let pageSearchTerm = null;
+let owner = null;
 let focusInSearchBox = false;
 let installed = false;
 
@@ -38,16 +38,24 @@ function normalize(term) {
     .toLowerCase();
 }
 
+// Whether the full page search is searching for this term with one of the two types. It sets
+// `searching` before it looks anything up and clears it once the results are in, so this holds
+// however the search was started: Enter, the search button, the type tabs or the URL. The page
+// keeps its term and type after it is left, but not `searching`.
+function pageSearchFor(term) {
+  const controller = owner?.lookup("controller:full-page-search");
+  return (
+    !!controller?.searching &&
+    PAGE_SEARCH_TYPES.includes(controller.search_type) &&
+    normalize(controller.searchTerm) === normalize(term)
+  );
+}
+
 function fromSearch(term) {
   if (!currentUser) {
     return false;
   }
-  if (inSearchBox(document.activeElement)) {
-    return true;
-  }
-  return (
-    pageSearchTerm !== null && normalize(pageSearchTerm) === normalize(term)
-  );
+  return inSearchBox(document.activeElement) || pageSearchFor(term);
 }
 
 function lookupTermKey(url) {
@@ -120,33 +128,11 @@ function onFocusIn(event) {
 
 export default function setupSearchSuggestions(api) {
   currentUser = api.getCurrentUser();
-  pageSearchTerm = null;
+  owner = api.container;
 
   if (!currentUser) {
     return;
   }
-
-  api.modifyClass(
-    "controller:full-page-search",
-    (Superclass) =>
-      class extends Superclass {
-        // Category.search runs during _search and the user and tag lookups shortly after it, so
-        // the term is recorded first.
-        _search() {
-          pageSearchTerm = PAGE_SEARCH_TYPES.includes(this.search_type)
-            ? this.searchTerm
-            : null;
-          return super._search(...arguments);
-        }
-      }
-  );
-
-  const router = api.container.lookup("service:router");
-  api.onPageChange(() => {
-    if (router.currentRouteName !== "full-page-search") {
-      pageSearchTerm = null;
-    }
-  });
 
   // Prefilters cannot be removed, so they and the wrapper are installed once and read the state
   // above, which each boot of the app resets.

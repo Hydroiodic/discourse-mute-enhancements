@@ -94,7 +94,7 @@
 
 联想用的接口发帖编辑器、聊天、选择框也在用，而且聊天里的 `@` 提及发出的参数和搜索框完全一样，服务器分不出来。所以由浏览器标记来自搜索的请求（`assets/javascripts/discourse/lib/search-suggestions.js`），服务器只过滤带标记的请求（`lib/discourse_mute_enhancements/search_suggestions.rb`）：
 
-- 来自搜索的请求：焦点在搜索框里（`.search-menu-container`、`.search-bar__field`）时发出的；或者完整搜索页正按“用户”“类别/标签”类型搜索，而请求的关键词就是页面的搜索词（插件在 `full-page-search` 控制器的 `_search` 里记下搜索词）。
+- 来自搜索的请求：焦点在搜索框里（`.search-menu-container`、`.search-bar__field`）时发出的；或者完整搜索页正按“用户”“类别/标签”类型搜索，而请求的关键词就是页面的搜索词。后一种在发请求时直接读 `full-page-search` 控制器的 `searching`、`search_type`、`searchTerm`：核心搜索前设上 `searching`，结果回来后清掉，所以不管是按回车、点搜索按钮、切换类型还是打开链接开始的搜索都能认出来。核心的 `_search` 用了 `@bind`，第一次经过 `super._search` 时会把绑定好的核心方法直接写到实例上，之后的调用都绕过子类，所以不能靠覆盖 `_search` 来记搜索词。
 - 用户和标签：用 `$.ajaxPrefilter` 给这两个接口的请求加上 `mute_enhancements_search=true`。服务器把 `UsersControllerExtension` prepend 到 `UsersController`，在 `User.where.not(id: ...).scoping { super() }` 里调用核心的 `search_users`（`UserSearch` 的查询都从 `User` 开始）；把 `TagsControllerExtension` prepend 到 `TagsController`，把免打扰的标签加进 `selected_tag_ids`，核心本来就会把已选的标签排除在结果外。带 `filterForInput` 的请求（标签选择框）不加：这时 `selected_tag_ids` 还会被当作父标签、影响标签组“每个话题只能选一个”的规则。
 - 类别：包装 `Category.search`，多取一些再去掉免打扰的类别。插件 API 没有修改模型静态方法的办法，`modifyClass` 用在模型上也已弃用，所以直接替换。免打扰的类别取自核心发给浏览器的 `muted_category_ids`、`indirectly_muted_category_ids`，用户修改类别级别时会即时更新；`mute_all_categories_by_default` 带来的那部分不在这两个列表里，插件另外在当前用户上加了 `mute_enhancements_default_muted_category_ids`，这部分刷新页面后才更新。
 - 浏览器按参数把用户联想的结果缓存 30 秒，搜索框和聊天提及的参数相同，所以焦点进出搜索框时清空这个缓存，免得一边用上另一边的结果。

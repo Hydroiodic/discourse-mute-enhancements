@@ -139,6 +139,60 @@ RSpec.describe "Mute enhancements" do
       expect(page).to have_no_css(".fps-tag-item", text: "needle-muted-tag")
     end
 
+    # Each page load searches once on its own; these search again on the same page. The second
+    # terms only match what is left out, so nothing is found.
+    it "leaves them out when searching again with the button of the full page search" do
+      no_results = I18n.t("js.search.no_results")
+
+      visit("/search?q=needle&search_type=users")
+      expect(page).to have_css(".fps-user-item", text: "needleother")
+      search_page.clear_search_input
+      search_page.type_in_search("needleign")
+      search_page.click_search_button
+      expect(page).to have_css(".search-results h3", text: no_results)
+      expect(page).to have_no_css(".fps-user-item", text: "needleignored")
+
+      visit("/search?q=needle&search_type=categories_tags")
+      expect(page).to have_css(".fps-tag-item", text: "needle-regular-tag")
+      search_page.clear_search_input
+      search_page.type_in_search("needle-m")
+      search_page.click_search_button
+      expect(page).to have_css(".search-results h3", text: no_results)
+      expect(page).to have_no_css(".category-items", text: "Needle muted")
+      expect(page).to have_no_css(".fps-tag-item", text: "needle-muted-tag")
+    end
+
+    it "leaves them out when switching the type of the full page search or pressing Enter" do
+      visit("/search?q=needle")
+      find(".search-types [data-search-type='categories_tags']").click
+      expect(page).to have_css(".fps-tag-item", text: "needle-regular-tag")
+      expect(page).to have_no_css(".category-items", text: "Needle muted")
+      expect(page).to have_no_css(".fps-tag-item", text: "needle-muted-tag")
+
+      find(".search-types [data-search-type='users']").click
+      expect(page).to have_css(".fps-user-item", text: "needleother")
+      expect(page).to have_no_css(".fps-user-item", text: "needleignored")
+
+      search_page.clear_search_input
+      search_page.type_in_search("needleign")
+      search_page.search_input.send_keys(:enter)
+      expect(page).to have_css(".search-results h3", text: I18n.t("js.search.no_results"))
+      expect(page).to have_no_css(".fps-user-item", text: "needleignored")
+    end
+
+    it "leaves them out after @ and # in the box of the full page search" do
+      visit("/search")
+      search_page.type_in_search("@needle")
+      expect(page).to have_css(".autocomplete.ac-user", text: "needleother")
+      expect(page).to have_no_css(".autocomplete.ac-user", text: "needleignored")
+
+      search_page.clear_search_input
+      search_page.type_in_search("#needle")
+      expect(page).to have_css(".autocomplete.ac-category-or-tag", text: "needle-regular-tag")
+      expect(page).to have_no_css(".autocomplete.ac-category-or-tag", text: "needle-muted-tag")
+      expect(page).to have_no_css(".autocomplete.ac-category-or-tag", text: "Needle muted")
+    end
+
     it "still suggests ignored users for mentions in the composer" do
       visit("/new-topic")
       expect(composer).to be_opened
