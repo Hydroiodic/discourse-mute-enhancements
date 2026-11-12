@@ -20,7 +20,7 @@ function normalize(text) {
     .join(",");
 }
 
-// Group > Manage > User preferences (admins only): topics muted for the group's members, one
+// Group > Manage > Member preferences (admins only): topics muted for the group's members, one
 // topic id per line. Saving mutes the added topics for current members.
 export default class MuteEnhancementsMutedTopics extends Component {
   @service toasts;

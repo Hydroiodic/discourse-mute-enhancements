@@ -20,8 +20,8 @@ en:
         saved_and_applied:
           one: "Saved and applied to %{count} existing member"
           other: "Saved and applied to %{count} existing members"
-      group_user_preferences:
-        title: "User preferences"
+      group_member_preferences:
+        title: "Member preferences"
       hide_preferences:
         title: "Preference pages hidden from members"
         description: "Members of this group do not see the checked pages in their preferences."

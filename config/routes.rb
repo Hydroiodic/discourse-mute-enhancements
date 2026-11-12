@@ -12,9 +12,9 @@ end
 Discourse::Application.routes.draw do
   mount DiscourseMuteEnhancements::Engine, at: "mute-enhancements"
 
-  # Lets the browser open Group > Manage > User preferences directly, like core's other tabs.
+  # Lets the browser open Group > Manage > Member preferences directly, like core's other tabs.
   %w[groups g].each do |root_path|
-    get "#{root_path}/:name/manage/user-preferences" => "groups#show",
+    get "#{root_path}/:name/manage/member-preferences" => "groups#show",
         :constraints => {
           name: RouteFormat.username,
         }

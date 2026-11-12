@@ -6,7 +6,7 @@ import MuteEnhancementsMutedTopics from "../../../components/mute-enhancements-m
 const isPresent = (value) => value !== undefined;
 
 <template>
-  <div class="groups-form form-vertical mute-enhancements-user-preferences">
+  <div class="groups-form form-vertical mute-enhancements-member-preferences">
     {{#if (isPresent @controller.model.mute_enhancements_default_users)}}
       <MuteEnhancementsDefaultUsers @group={{@controller.model}} />
     {{/if}}

@@ -2,6 +2,6 @@ export default {
   resource: "group.manage",
 
   map() {
-    this.route("user-preferences");
+    this.route("member-preferences");
   },
 };

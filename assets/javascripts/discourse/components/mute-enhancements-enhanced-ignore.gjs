@@ -11,7 +11,7 @@ import { i18n } from "discourse-i18n";
 // In the order of enhanced-ignore's own preferences.
 const OPTIONS = ["hide_ignored_topics", "ignored_user_cannot_reply_to_me"];
 
-// Group > Manage > User preferences (admins only): enhanced-ignore's options turned on for the
+// Group > Manage > Member preferences (admins only): enhanced-ignore's options turned on for the
 // group's members, each on its own. Saved as soon as a box is changed.
 export default class MuteEnhancementsEnhancedIgnore extends Component {
   @service toasts;

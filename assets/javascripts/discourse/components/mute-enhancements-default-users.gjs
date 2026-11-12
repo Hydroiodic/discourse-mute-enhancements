@@ -22,7 +22,7 @@ function addedItems(current, saved) {
   return current.filter((item) => !saved.includes(item)).length;
 }
 
-// Group > Manage > User preferences (admins only): users, and groups when group mutes are
+// Group > Manage > Member preferences (admins only): users, and groups when group mutes are
 // enabled, that members of the group mute or ignore by default. Has its own Save button, as the
 // hidden pages on the same page are saved as soon as they change.
 export default class MuteEnhancementsDefaultUsers extends Component {

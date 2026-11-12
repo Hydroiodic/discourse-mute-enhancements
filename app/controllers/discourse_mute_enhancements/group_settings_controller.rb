@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 module DiscourseMuteEnhancements
-  # Base class for the settings on a group's Manage > User preferences page. Only admins can
+  # Base class for the settings on a group's Manage > Member preferences page. Only admins can
   # change them, automatic groups do not have them, and each is turned off by its own site
   # setting, which subclasses check through #feature.
   class GroupSettingsController < ::ApplicationController

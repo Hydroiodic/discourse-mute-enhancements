@@ -160,7 +160,7 @@ RSpec.describe "Mute enhancements" do
 
     it "saves the defaults and applies them to current members when asked" do
       sign_in(admin)
-      visit("/g/#{group.name}/manage/user-preferences")
+      visit("/g/#{group.name}/manage/member-preferences")
 
       default_muted.expand
       default_muted.search(spammer.username)
@@ -185,7 +185,7 @@ RSpec.describe "Mute enhancements" do
       spam_group.add(spammer)
 
       sign_in(admin)
-      visit("/g/#{group.name}/manage/user-preferences")
+      visit("/g/#{group.name}/manage/member-preferences")
 
       default_ignored_groups.expand
       expect(default_ignored_groups).to have_no_option_value(group.id)
@@ -211,23 +211,23 @@ RSpec.describe "Mute enhancements" do
       visit("/g/#{group.name}/manage/membership")
 
       expect(page).to have_css(".group-form-automatic-membership-automatic")
-      expect(page).to have_no_css("a[href$='/manage/user-preferences']")
+      expect(page).to have_no_css("a[href$='/manage/member-preferences']")
 
-      visit("/g/#{group.name}/manage/user-preferences")
+      visit("/g/#{group.name}/manage/member-preferences")
       expect(page).to have_current_path("/g/#{group.name}/manage/profile")
       expect(page).to have_no_css(".mute-enhancements-default-users")
     end
   end
 
-  describe "the User preferences tab of a group" do
+  describe "the Member preferences tab of a group" do
     it "comes right after Membership" do
       sign_in(admin)
       visit("/g/#{group.name}/manage/profile")
 
       tabs = all(".user-secondary-navigation li a").map { |link| link[:href].split("/").last }
-      expect(tabs.each_cons(2)).to include(%w[membership user-preferences])
+      expect(tabs.each_cons(2)).to include(%w[membership member-preferences])
 
-      find(".user-secondary-navigation a[href$='/manage/user-preferences']").click
+      find(".user-secondary-navigation a[href$='/manage/member-preferences']").click
       expect(page).to have_css(".mute-enhancements-default-users")
       expect(page).to have_css(".mute-enhancements-hide-preferences")
       expect(page).to have_css(".mute-enhancements-muted-topics")
@@ -243,11 +243,11 @@ RSpec.describe "Mute enhancements" do
 
       visit("/g/#{group.name}/manage/membership")
       expect(page).to have_css(".user-secondary-navigation a[href$='/manage/profile']")
-      expect(page).to have_no_css("a[href$='/manage/user-preferences']")
+      expect(page).to have_no_css("a[href$='/manage/member-preferences']")
 
-      visit("/g/#{group.name}/manage/user-preferences")
+      visit("/g/#{group.name}/manage/member-preferences")
       expect(page).to have_current_path("/g/#{group.name}/manage/profile")
-      expect(page).to have_no_css(".mute-enhancements-user-preferences")
+      expect(page).to have_no_css(".mute-enhancements-member-preferences")
     end
   end
 
@@ -259,7 +259,7 @@ RSpec.describe "Mute enhancements" do
 
     it "mutes the topics in the box for every member" do
       sign_in(admin)
-      visit("/g/#{group.name}/manage/user-preferences")
+      visit("/g/#{group.name}/manage/member-preferences")
 
       expect(page).to have_css(".mute-enhancements-save-muted-topics[disabled]")
       find("#mute-enhancements-muted-topics-input").fill_in(with: "#{topic.id}\n#{other_topic.id}")
@@ -280,7 +280,7 @@ RSpec.describe "Mute enhancements" do
 
     it "shows what was wrong and keeps the box as it was typed" do
       sign_in(admin)
-      visit("/g/#{group.name}/manage/user-preferences")
+      visit("/g/#{group.name}/manage/member-preferences")
 
       find("#mute-enhancements-muted-topics-input").fill_in(with: "#{topic.id}\nabc")
       find(".mute-enhancements-save-muted-topics").click
@@ -301,7 +301,7 @@ RSpec.describe "Mute enhancements" do
 
     it "turns each option on for every member with its box" do
       sign_in(admin)
-      visit("/g/#{group.name}/manage/user-preferences")
+      visit("/g/#{group.name}/manage/member-preferences")
 
       expect(page).to have_css(
         ".mute-enhancements-enhanced-ignore .control-label",
@@ -337,7 +337,7 @@ RSpec.describe "Mute enhancements" do
 
     it "is set by admins with a box for each page" do
       sign_in(admin)
-      visit("/g/#{group.name}/manage/user-preferences")
+      visit("/g/#{group.name}/manage/member-preferences")
 
       find(".mute-enhancements-hide-preferences-users").click
       expect(page).to have_css(".mute-enhancements-hide-preferences-users:checked:not([disabled])")

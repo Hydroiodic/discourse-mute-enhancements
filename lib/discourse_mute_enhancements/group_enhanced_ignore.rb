@@ -2,7 +2,7 @@
 
 module DiscourseMuteEnhancements
   # Turns on the enhanced-ignore plugin's preferences for a group's members, chosen by admins on
-  # the group's Manage > User preferences page, each on its own (none by default):
+  # the group's Manage > Member preferences page, each on its own (none by default):
   #
   # - hide_ignored_topics: topics started by ignored users are left out of the member's topic
   #   lists;

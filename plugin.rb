@@ -22,7 +22,7 @@ module ::DiscourseMuteEnhancements
     1000.years.from_now
   end
 
-  # The settings on a group's Manage > User preferences page are for admins only, and automatic
+  # The settings on a group's Manage > Member preferences page are for admins only, and automatic
   # groups do not have them. feature is the module that implements the setting.
   def self.group_setting_visible?(feature, guardian, group)
     feature.enabled? && guardian.is_admin? && !group.automatic
@@ -84,7 +84,7 @@ after_initialize do
     DiscourseMuteEnhancements::GroupMutes.apply_user_update(user, attributes)
   end
 
-  # Group > Manage > User preferences: default muted and ignored users and groups for the
+  # Group > Manage > Member preferences: default muted and ignored users and groups for the
   # group's members, preference pages hidden from them, topics muted for them and enhanced-ignore
   # options turned on for them
 

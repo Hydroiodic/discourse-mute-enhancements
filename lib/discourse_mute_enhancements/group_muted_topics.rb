@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 module DiscourseMuteEnhancements
-  # Topics muted for a group's members, set by admins on the group's Manage > User preferences
+  # Topics muted for a group's members, set by admins on the group's Manage > Member preferences
   # page, one topic id per line:
   #
   # - saving sets the notification level of every current member to Muted for the topics that
