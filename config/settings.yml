@@ -1,0 +1,4 @@
+plugins:
+  search_tag_filter_enabled:
+    default: true
+    client: false

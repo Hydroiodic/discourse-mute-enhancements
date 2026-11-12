@@ -1,0 +1,19 @@
+# frozen_string_literal: true
+
+# name: discourse-search-tag-filter
+# about: Hide topics with tags the user has muted from search results.
+# version: 0.1
+# authors: Hydroiodic
+
+enabled_site_setting :search_tag_filter_enabled
+
+module ::DiscourseSearchTagFilter
+  PLUGIN_NAME = "discourse-search-tag-filter"
+end
+
+require_relative "lib/discourse_search_tag_filter/muted_tags_filter"
+require_relative "lib/discourse_search_tag_filter/search_extension"
+
+after_initialize do
+  reloadable_patch { ::Search.prepend(DiscourseSearchTagFilter::SearchExtension) }
+end

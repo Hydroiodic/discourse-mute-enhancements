@@ -1,0 +1,3 @@
+en:
+  site_settings:
+    search_tag_filter_enabled: "Hide topics with tags the user has muted from search results."
