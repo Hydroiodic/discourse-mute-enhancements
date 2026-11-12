@@ -252,41 +252,52 @@ RSpec.describe DiscourseMuteEnhancements::GroupDefaultUsersController do
       )
     end
 
-    it "rejects groups members could not mute themselves, and saves nothing" do
-      hidden = Fabricate(:group, name: "hidden", visibility_level: Group.visibility_levels[:owners])
-      secret_members =
-        Fabricate(
-          :group,
-          name: "secret_members",
-          members_visibility_level: Group.visibility_levels[:members],
-        )
-
-      [hidden, secret_members].each do |rejected|
-        save_groups(ignored: rejected.id.to_s, muted_usernames: spammer.username)
-        expect(response.status).to eq(422)
-        expect(response.parsed_body["errors"].first).to include(rejected.name)
-      end
-
-      save_groups(ignored: Group::AUTO_GROUPS[:trust_level_1].to_s)
+    it "rejects automatic groups and the group itself, and saves nothing" do
+      save_groups(
+        ignored: Group::AUTO_GROUPS[:trust_level_1].to_s,
+        muted_usernames: spammer.username,
+      )
       expect(response.status).to eq(422)
-      save_groups(ignored: group.id.to_s)
+
+      save_groups(ignored: group.id.to_s, muted_usernames: spammer.username)
       expect(response.status).to eq(422)
+      expect(response.parsed_body["errors"].first).to include(group.name)
 
       expect(DiscourseMuteEnhancements::GroupDefaultGroup.count).to eq(0)
       expect(DiscourseMuteEnhancements::GroupDefaultUser.count).to eq(0)
     end
 
-    it "keeps a default whose group was hidden later, without giving it to anyone" do
-      save_groups
-      loud_group.update!(visibility_level: Group.visibility_levels[:owners])
+    it "allows hidden groups, which members can remove but not add back" do
+      hidden =
+        Fabricate(
+          :group,
+          name: "hidden",
+          visibility_level: Group.visibility_levels[:owners],
+          members_visibility_level: Group.visibility_levels[:owners],
+        )
+      hidden_member = Fabricate(:user)
+      hidden.add(hidden_member)
+      member.update!(trust_level: TrustLevel[2])
+      Group.refresh_automatic_groups!
 
-      save_groups(update_existing_users: true)
+      save_groups(muted: "", ignored: hidden.id.to_s, update_existing_users: true)
       expect(response.status).to eq(200)
-      expect(response.parsed_body["ignored_group_ids"]).to eq([loud_group.id])
+      expect(response.parsed_body["ignored_group_ids"]).to eq([hidden.id])
+      expect(group_mutes(member).keys).to contain_exactly(hidden.id)
+      expect(ignored_ids(member)).to contain_exactly(hidden_member.id)
 
-      newcomer = Fabricate(:user)
-      group.add(newcomer)
-      expect(group_mutes(newcomer).keys).to contain_exactly(noisy_group.id)
+      sign_in(member)
+      get "/u/#{member.username}.json"
+      shown = response.parsed_body["user"]
+      expect(shown["mute_enhancements_ignored_group_ids"]).to eq(hidden.id.to_s)
+      expect(shown["mute_enhancements_available_groups"].map { |g| g["name"] }).to include("hidden")
+
+      DiscourseMuteEnhancements::GroupMutes.update(member, ignore: [])
+      expect(group_mutes(member)).to be_empty
+      expect(ignored_ids(member)).to be_empty
+
+      DiscourseMuteEnhancements::GroupMutes.update(member, ignore: [hidden.id])
+      expect(group_mutes(member)).to be_empty
     end
 
     it "leaves the default groups alone when they are not sent" do
@@ -312,8 +323,8 @@ RSpec.describe DiscourseMuteEnhancements::GroupDefaultUsersController do
         "ignored_group_ids" => [loud_group.id],
       )
       names = defaults["available_groups"].map { |g| g["name"] }
-      expect(names).to include("loud", "noisy")
-      expect(names).not_to include(group.name, hidden.name, "trust_level_1")
+      expect(names).to include("loud", "noisy", hidden.name)
+      expect(names).not_to include(group.name, "trust_level_1")
     end
 
     it "removes the defaults with either group" do

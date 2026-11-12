@@ -11,4 +11,4 @@ zh_CN:
   mute_enhancements:
     errors:
       staff_default_users: "管理员和版主不能被设为免打扰或忽略：%{usernames}"
-      invalid_default_groups: "这些群组不能设为默认屏蔽的群组：%{groups}。只能选所有登录用户都能看到、也能看到成员的群组，不能是自动群组或这个群组本身。"
+      invalid_default_groups: "这些群组不能设为默认屏蔽的群组：%{groups}。不能选自动群组或这个群组本身。"

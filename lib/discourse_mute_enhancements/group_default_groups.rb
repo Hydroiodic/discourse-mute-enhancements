@@ -12,10 +12,11 @@ module DiscourseMuteEnhancements
   # - leaving the group, or removing a default, leaves it in place;
   # - when a default is added, admins choose whether current members get it too.
   #
-  # Members may only mute groups they can see and whose members they can see, or a group mute
-  # would tell them who is in a group hidden from them. So defaults are limited to groups that
-  # every signed-in user can see along with their members. A default whose group is hidden later
-  # stays, but is not given to anyone while the group is hidden.
+  # Any group can be a default except automatic groups and the group itself, including hidden
+  # groups, which members cannot mute themselves (GroupMutes.mutable_groups). This was chosen on
+  # purpose: admins see every group anyway, and it is acceptable that members see a hidden group's
+  # name in their preferences and can tell who is in it from who they mute or ignore. Members can
+  # remove such a group mute, but cannot add it back themselves.
   module GroupDefaultGroups
     class InvalidGroups < StandardError
     end
@@ -24,16 +25,8 @@ module DiscourseMuteEnhancements
       GroupDefaultUsers.enabled? && GroupMutes.enabled?
     end
 
-    def self.visible_levels
-      Group.visibility_levels.values_at(:public, :logged_on_users)
-    end
-
-    def self.eligible_groups
-      Group.where(
-        automatic: false,
-        visibility_level: visible_levels,
-        members_visibility_level: visible_levels,
-      )
+    def self.eligible_groups(group)
+      Group.where(automatic: false).where.not(id: group.id)
     end
 
     def self.group_ids(group)
@@ -54,14 +47,9 @@ module DiscourseMuteEnhancements
       Group.where(id: ids).order(:name).pluck(:name)
     end
 
-    # What the Membership page offers: the eligible groups and the ones already chosen, but not
-    # the group itself.
+    # What the Membership page offers.
     def self.choosable_groups(group)
-      Group
-        .where(id: eligible_groups.select(:id))
-        .or(Group.where(id: GroupDefaultGroup.where(group_id: group.id).select(:target_group_id)))
-        .where.not(id: group.id)
-        .order(:name)
+      eligible_groups(group).order(:name)
     end
 
     def self.serialize(group)
@@ -71,8 +59,7 @@ module DiscourseMuteEnhancements
       )
     end
 
-    # Replaces the group's default groups. New ones must be eligible; ones already set may stay.
-    # A group in both lists is ignored. Returns the ids of current members who got a new group
+    # Replaces the group's default groups. A group in both lists is ignored. Returns the ids of current members who got a new group
     # mute (none unless update_existing_users).
     def self.update(group, muted_group_ids:, ignored_group_ids:, update_existing_users:)
       ignored = parse_ids(ignored_group_ids)
@@ -82,7 +69,7 @@ module DiscourseMuteEnhancements
       current = GroupDefaultGroup.where(group_id: group.id).pluck(:target_group_id, :level).to_h
 
       added = desired.keys - current.keys
-      invalid = added - eligible_groups.where(id: added).where.not(id: group.id).pluck(:id)
+      invalid = added - eligible_groups(group).where(id: added).pluck(:id)
       raise InvalidGroups, (names(invalid).presence || invalid).join(", ") if invalid.present?
 
       changed = desired.reject { |group_id, level| current[group_id] == level }
@@ -114,21 +101,12 @@ module DiscourseMuteEnhancements
       defaults = defaults.where(target_group_id: only_target_ids) if only_target_ids
       return [] if !defaults.exists?
 
-      params = {
-        group_id: group.id,
-        member_ids:,
-        target_ids: only_target_ids,
-        visible: visible_levels,
-        now: Time.zone.now,
-      }
+      params = { group_id: group.id, member_ids:, target_ids: only_target_ids, now: Time.zone.now }
       user_ids = DB.query_single(<<~SQL, params).uniq
         INSERT INTO mute_enhancements_group_mutes (user_id, group_id, level, created_at, updated_at)
         SELECT gu.user_id, d.target_group_id, d.level, :now, :now
         FROM mute_enhancements_group_default_groups d
-        JOIN groups t ON t.id = d.target_group_id
-          AND NOT t.automatic
-          AND t.visibility_level IN (:visible)
-          AND t.members_visibility_level IN (:visible)
+        JOIN groups t ON t.id = d.target_group_id AND NOT t.automatic
         JOIN group_users gu ON gu.group_id = d.group_id
           #{member_ids ? "AND gu.user_id IN (:member_ids)" : ""}
         WHERE d.group_id = :group_id

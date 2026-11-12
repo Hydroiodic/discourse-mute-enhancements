@@ -11,4 +11,4 @@ en:
   mute_enhancements:
     errors:
       staff_default_users: "Admins and moderators cannot be muted or ignored: %{usernames}"
-      invalid_default_groups: "These groups cannot be muted or ignored by default: %{groups}. Only groups that every signed-in user can see, along with their members, can be chosen, and not automatic groups or the group itself."
+      invalid_default_groups: "These groups cannot be muted or ignored by default: %{groups}. Automatic groups and the group itself cannot be chosen."

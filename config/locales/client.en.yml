@@ -10,7 +10,7 @@ en:
         title: "Users new members mute or ignore"
         title_with_groups: "Users and groups new members mute or ignore"
         description: "When someone joins this group, they ignore or mute the users below, unless they already set them otherwise. This goes into the member's own preferences, so they can undo it later; leaving the group or removing a user here does not undo it. Admins and moderators cannot be muted or ignored. Only admins can see and change this."
-        groups_description: "The same goes for groups: someone who joins ignores or mutes the groups below, unless they already muted or ignored that group, just as if they had chosen it in Preferences → Users, so people who join that group later are muted or ignored too. Only groups that every signed-in user can see, along with their members, can be chosen."
+        groups_description: "The same goes for groups: someone who joins ignores or mutes the groups below, unless they already muted or ignored that group, just as if they had chosen it in Preferences → Users, so people who join that group later are muted or ignored too. Hidden groups can be chosen too, but members will see their names in their preferences and can tell who is in them from who gets muted or ignored."
         ignored: "Ignored users"
         muted: "Muted users"
         ignored_groups: "Ignored groups"
