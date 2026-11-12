@@ -255,5 +255,31 @@ RSpec.describe "Mute enhancements" do
       expect(page).to have_current_path("/u/#{user.username}/preferences/users")
       expect(page).to have_css(".user-nav__preferences-notifications")
     end
+
+    context "with the user navigation in the sidebar" do
+      before { SiteSetting.sidebar_user_navigation = true }
+
+      def sidebar_link(name) = "[data-list-item-name='user-nav-preferences-#{name}']"
+
+      it "hides the two pages there too" do
+        DiscourseMuteEnhancements::HiddenPreferences.update(group, true)
+        sign_in(member)
+
+        visit("/u/#{member.username}/preferences/account")
+        expect(page).to have_css(sidebar_link("account"))
+        expect(page).to have_css(sidebar_link("tracking"))
+        expect(page).to have_no_css(sidebar_link("notifications"))
+        expect(page).to have_no_css(sidebar_link("users"))
+      end
+
+      it "keeps them for everyone else" do
+        DiscourseMuteEnhancements::HiddenPreferences.update(group, true)
+        sign_in(user)
+
+        visit("/u/#{user.username}/preferences/account")
+        expect(page).to have_css(sidebar_link("notifications"))
+        expect(page).to have_css(sidebar_link("users"))
+      end
+    end
   end
 end
