@@ -140,20 +140,18 @@ module DiscourseMuteEnhancements
       return if !enabled?
 
       if attributes.key?(CONVERTED_PARAM)
+        usernames = attributes[CONVERTED_PARAM].to_s.downcase.split(",")
         DerivedMute.where(
           user_id: user.id,
           level: LEVELS[:mute],
-          target_user_id:
-            User.where(username_lower: attributes[CONVERTED_PARAM].to_s.downcase.split(",")).select(
-              :id,
-            ),
+          target_user_id: User.where(username_lower: usernames).select(:id),
         ).delete_all
       end
 
       lists =
         PARAMS.filter_map do |level, key|
           next if !attributes.key?(key)
-          [level, attributes[key].to_s.split(",").map(&:strip).select { |id| id.match?(/\A\d+\z/) }]
+          [level, attributes[key].to_s.split(",").map(&:strip).grep(/\A\d+\z/)]
         end
       update(user, lists.to_h) if lists.present?
     end
@@ -166,6 +164,7 @@ module DiscourseMuteEnhancements
         SQL
         .pluck(:username)
     end
+    private_class_method :derived_usernames
 
     def self.derived_target_ids(user, level)
       DerivedMute.where(user_id: user.id, level: LEVELS[level]).select(:target_user_id)
@@ -259,7 +258,9 @@ module DiscourseMuteEnhancements
           FROM covered c
           WHERE NOT EXISTS (
               SELECT 1 FROM mute_enhancements_derived_mutes d
-              WHERE d.user_id = c.user_id AND d.target_user_id = c.target_user_id AND d.level = :level
+              WHERE d.user_id = c.user_id
+                AND d.target_user_id = c.target_user_id
+                AND d.level = :level
             )
             AND NOT EXISTS (
               SELECT 1 FROM #{table} t
@@ -275,6 +276,7 @@ module DiscourseMuteEnhancements
         ON CONFLICT DO NOTHING
       SQL
     end
+    private_class_method :reconcile_level
 
     # Daily clean-up for what the events miss: members who became staff, and group mutes of
     # deleted users or of groups that are gone.

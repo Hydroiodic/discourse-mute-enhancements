@@ -2,13 +2,13 @@
 
 module DiscourseMuteEnhancements
   # Groups that a group's members mute or ignore by default, set by admins next to the default
-  # users (GroupDefaultUsers) on the group's Manage → User preferences page. A member who joins
+  # users (GroupDefaultUsers) on the group's Manage > User preferences page. A member who joins
   # gets a group mute of their own (see GroupMutes) for each of them, as if they had muted or
   # ignored the group in their preferences, so it follows that group's members from then on.
   # Otherwise it works like the default users:
   #
   # - a member who already muted or ignored that group keeps what they chose;
-  # - the group mute belongs to the member, who can remove it in Preferences → Users;
+  # - the group mute belongs to the member, who can remove it in Preferences > Users;
   # - leaving the group, or removing a default, leaves it in place;
   # - when a default is added, admins choose whether current members get it too.
   #
@@ -23,10 +23,6 @@ module DiscourseMuteEnhancements
 
     def self.enabled?
       GroupDefaultUsers.enabled? && GroupMutes.enabled?
-    end
-
-    def self.eligible_groups(group)
-      Group.where(automatic: false).where.not(id: group.id)
     end
 
     def self.group_ids(group)
@@ -47,6 +43,11 @@ module DiscourseMuteEnhancements
       Group.where(id: ids).order(:name).pluck(:name)
     end
 
+    # Groups that can be defaults: any group but automatic ones and the group itself.
+    def self.eligible_groups(group)
+      Group.where(automatic: false).where.not(id: group.id)
+    end
+
     # What the User preferences page offers.
     def self.choosable_groups(group)
       eligible_groups(group).order(:name)
@@ -59,8 +60,8 @@ module DiscourseMuteEnhancements
       )
     end
 
-    # Replaces the group's default groups. A group in both lists is ignored. Returns the ids of current members who got a new group
-    # mute (none unless update_existing_users).
+    # Replaces the group's default groups. A group in both lists is ignored. Returns the ids of
+    # current members who got a new group mute (none unless update_existing_users).
     def self.update(group, muted_group_ids:, ignored_group_ids:, update_existing_users:)
       ignored = parse_ids(ignored_group_ids)
       muted = parse_ids(muted_group_ids) - ignored
@@ -128,11 +129,12 @@ module DiscourseMuteEnhancements
 
     def self.parse_ids(value)
       Array(value)
-        .flat_map { |v| v.to_s.split(",") }
+        .flat_map { |item| item.to_s.split(",") }
         .map(&:strip)
-        .select { |id| id.match?(/\A\d+\z/) }
+        .grep(/\A\d+\z/)
         .map(&:to_i)
         .uniq
     end
+    private_class_method :parse_ids
   end
 end

@@ -50,9 +50,9 @@ module DiscourseMuteEnhancements
     def tags_search
       ids = mute_enhancements_hidden_ids(:tag_ids)
       return super() if ids.blank?
-      # Tag.visible merges a relation with its own condition on tags.id, and
-      # merge replaces earlier conditions on the same column, so a
-      # where.not(id:) would be dropped. A SQL string is kept as it is.
+      # Tag.visible merges a relation with its own condition on tags.id, and merge replaces earlier
+      # conditions on the same column, so a where.not(id:) would be dropped. A SQL string is kept
+      # as it is.
       Tag.where("tags.id NOT IN (?)", ids).scoping { super() }
     end
 

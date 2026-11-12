@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 module DiscourseMuteEnhancements
+  # Splits a search term into words, so the search filters can tell what the search asks for.
   module SearchTerms
     # Same tokenizer as Search#process_advanced_search!.
     WORD_SCANNER = /(([^" \t\n\x0B\f\r]+)?(("[^"]+")?))/

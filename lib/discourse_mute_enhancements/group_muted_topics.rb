@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 module DiscourseMuteEnhancements
-  # Topics muted for a group's members, set by admins on the group's Manage → User preferences
+  # Topics muted for a group's members, set by admins on the group's Manage > User preferences
   # page, one topic id per line:
   #
   # - saving sets the notification level of every current member to Muted for the topics that
@@ -18,6 +18,7 @@ module DiscourseMuteEnhancements
   # are none.
   module GroupMutedTopics
     FIELD = "mute_enhancements_muted_topics"
+    ID_FORMAT = /\A\d+\z/
 
     class InvalidTopics < StandardError
     end
@@ -40,9 +41,9 @@ module DiscourseMuteEnhancements
     # of members whose level changed.
     def self.update(group, value)
       tokens = value.to_s.split(/[\s,]+/).compact_blank
-      ids = tokens.grep(/\A\d+\z/).map(&:to_i).uniq
+      ids = tokens.grep(ID_FORMAT).map(&:to_i).uniq
       found = Topic.where(id: ids, archetype: Archetype.default).pluck(:id)
-      invalid = tokens.grep_v(/\A\d+\z/) + (ids - found).map(&:to_s)
+      invalid = tokens.grep_v(ID_FORMAT) + (ids - found).map(&:to_s)
       raise InvalidTopics, invalid.uniq.join(", ") if invalid.present?
 
       saved = topic_ids(group)
@@ -64,15 +65,22 @@ module DiscourseMuteEnhancements
       topic_ids = only_topic_ids || topic_ids(group)
       return [] if topic_ids.empty?
 
-      muted = TopicUser.notification_levels[:muted]
-      reason = TopicUser.notification_reasons[:user_changed]
-      rows =
-        DB.query(
-          <<~SQL,
-        INSERT INTO topic_users (user_id, topic_id, notification_level, notifications_reason_id, notifications_changed_at)
+      params = {
+        group_id: group.id,
+        member_ids:,
+        topic_ids:,
+        muted: TopicUser.notification_levels[:muted],
+        reason: TopicUser.notification_reasons[:user_changed],
+        regular: Archetype.default,
+        now: Time.zone.now,
+      }
+      rows = DB.query(<<~SQL, params)
+        INSERT INTO topic_users
+          (user_id, topic_id, notification_level, notifications_reason_id, notifications_changed_at)
         SELECT gu.user_id, t.id, :muted, :reason, :now
         FROM group_users gu
-        JOIN topics t ON t.id IN (:topic_ids) AND t.deleted_at IS NULL AND t.archetype = :regular
+        JOIN topics t
+          ON t.id IN (:topic_ids) AND t.deleted_at IS NULL AND t.archetype = :regular
         WHERE gu.group_id = :group_id
           #{member_ids ? "AND gu.user_id IN (:member_ids)" : ""}
         ON CONFLICT (user_id, topic_id) DO UPDATE
@@ -82,27 +90,24 @@ module DiscourseMuteEnhancements
           WHERE topic_users.notification_level <> EXCLUDED.notification_level
         RETURNING user_id, topic_id
       SQL
-          group_id: group.id,
-          member_ids:,
-          topic_ids:,
-          muted:,
-          reason:,
-          regular: Archetype.default,
-          now: Time.zone.now,
-        )
 
-      # Like TopicUser.change, so an open topic shows the new level. It does not trigger
-      # :topic_notification_level_changed, which is for levels users change themselves.
+      publish_changes(rows, params)
+      rows.map(&:user_id).uniq
+    end
+
+    # Tells open topics about the new level, as TopicUser.change does. It does not trigger
+    # :topic_notification_level_changed, which is for levels users change themselves.
+    def self.publish_changes(rows, params)
+      message = {
+        notification_level_change: params[:muted],
+        notifications_reason_id: params[:reason],
+      }
       rows
         .group_by(&:topic_id)
         .each do |topic_id, changed|
-          MessageBus.publish(
-            "/topic/#{topic_id}",
-            { notification_level_change: muted, notifications_reason_id: reason },
-            user_ids: changed.map(&:user_id),
-          )
+          MessageBus.publish("/topic/#{topic_id}", message, user_ids: changed.map(&:user_id))
         end
-      rows.map(&:user_id).uniq
     end
+    private_class_method :publish_changes
   end
 end

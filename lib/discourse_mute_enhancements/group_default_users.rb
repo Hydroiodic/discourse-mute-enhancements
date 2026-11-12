@@ -2,7 +2,7 @@
 
 module DiscourseMuteEnhancements
   # Users that a group's members mute or ignore by default, set by admins on the group's
-  # Manage → User preferences page. Works like core's default category and tag notification
+  # Manage > User preferences page. Works like core's default category and tag notification
   # levels for a group:
   #
   # - a user who joins the group gets a muted_users / ignored_users row of their own for each
@@ -94,10 +94,12 @@ module DiscourseMuteEnhancements
         WHERE d.group_id = :group_id
           #{only_target_ids ? "AND d.target_user_id IN (:target_ids)" : ""}
           AND NOT EXISTS (
-            SELECT 1 FROM muted_users mu WHERE mu.user_id = m.id AND mu.muted_user_id = d.target_user_id
+            SELECT 1 FROM muted_users mu
+            WHERE mu.user_id = m.id AND mu.muted_user_id = d.target_user_id
           )
           AND NOT EXISTS (
-            SELECT 1 FROM ignored_users iu WHERE iu.user_id = m.id AND iu.ignored_user_id = d.target_user_id
+            SELECT 1 FROM ignored_users iu
+            WHERE iu.user_id = m.id AND iu.ignored_user_id = d.target_user_id
           )
       SQL
 
@@ -112,8 +114,11 @@ module DiscourseMuteEnhancements
           RETURNING user_id
         ),
         ignored AS (
-          INSERT INTO ignored_users (user_id, ignored_user_id, expiring_at, summarized_at, created_at, updated_at)
-          SELECT user_id, target_user_id, :forever, :now, :now, :now FROM pairs WHERE level = :ignore
+          INSERT INTO ignored_users
+            (user_id, ignored_user_id, expiring_at, summarized_at, created_at, updated_at)
+          SELECT user_id, target_user_id, :forever, :now, :now, :now
+          FROM pairs
+          WHERE level = :ignore
           ON CONFLICT DO NOTHING
           RETURNING user_id
         )
@@ -121,14 +126,19 @@ module DiscourseMuteEnhancements
       SQL
     end
 
+    def self.group_destroyed(group_id)
+      GroupDefaultUser.where(group_id:).delete_all
+    end
+
     def self.find_users(usernames)
       names =
         Array(usernames)
-          .flat_map { |n| n.to_s.split(",") }
-          .map { |n| User.normalize_username(n.strip) }
-          .reject(&:blank?)
+          .flat_map { |name| name.to_s.split(",") }
+          .map { |name| User.normalize_username(name.strip) }
+          .compact_blank
       return [] if names.empty?
       User.where(username_lower: names.uniq).to_a
     end
+    private_class_method :find_users
   end
 end

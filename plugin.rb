@@ -1,9 +1,10 @@
 # frozen_string_literal: true
 
 # name: discourse-mute-enhancements
-# about: Keeps what a user muted or ignored out of search, lets users mute or ignore whole groups, and lets admins set default muted and ignored users and muted topics for a group's members and hide some preference pages from them.
-# version: 0.3
+# about: Keeps what users muted or ignored out of search, lets them mute or ignore whole groups, and gives admins per-group defaults for their members.
+# version: 0.4
 # authors: Hydroiodic
+# url: https://github.com/Hydroiodic/discourse-search-tag-filter
 
 enabled_site_setting :mute_enhancements_enabled
 
@@ -20,32 +21,17 @@ module ::DiscourseMuteEnhancements
   def self.forever
     1000.years.from_now
   end
+
+  # The settings on a group's Manage > User preferences page are for admins only, and automatic
+  # groups do not have them. feature is the module that implements the setting.
+  def self.group_setting_visible?(feature, guardian, group)
+    feature.enabled? && guardian.is_admin? && !group.automatic
+  end
 end
 
-require_relative "lib/discourse_mute_enhancements/search_terms"
-require_relative "lib/discourse_mute_enhancements/hidden_ids"
-require_relative "lib/discourse_mute_enhancements/muted_tags_filter"
-require_relative "lib/discourse_mute_enhancements/muted_categories_filter"
-require_relative "lib/discourse_mute_enhancements/ignored_users_filter"
-require_relative "lib/discourse_mute_enhancements/search_extension"
-require_relative "lib/discourse_mute_enhancements/search_suggestions"
+require_relative "lib/discourse_mute_enhancements/engine"
 
 after_initialize do
-  require_relative "app/models/discourse_mute_enhancements/group_mute"
-  require_relative "app/models/discourse_mute_enhancements/derived_mute"
-  require_relative "app/models/discourse_mute_enhancements/group_default_user"
-  require_relative "app/models/discourse_mute_enhancements/group_default_group"
-  require_relative "lib/discourse_mute_enhancements/group_mutes"
-  require_relative "lib/discourse_mute_enhancements/group_default_users"
-  require_relative "lib/discourse_mute_enhancements/group_default_groups"
-  require_relative "lib/discourse_mute_enhancements/hidden_preferences"
-  require_relative "lib/discourse_mute_enhancements/group_muted_topics"
-  require_relative "lib/discourse_mute_enhancements/user_serializer_extension"
-  require_relative "app/controllers/discourse_mute_enhancements/group_default_users_controller"
-  require_relative "app/controllers/discourse_mute_enhancements/group_hide_preferences_controller"
-  require_relative "app/controllers/discourse_mute_enhancements/group_muted_topics_controller"
-  require_relative "app/jobs/scheduled/mute_enhancements_reconcile_group_mutes"
-
   reloadable_patch do
     ::Search.prepend(DiscourseMuteEnhancements::SearchExtension)
     ::UserSerializer.prepend(DiscourseMuteEnhancements::UserSerializerExtension)
@@ -55,40 +41,18 @@ after_initialize do
     ::TagsController.prepend(DiscourseMuteEnhancements::SearchSuggestions::TagsControllerExtension)
   end
 
-  # Suggestions in the search box (see SearchSuggestions). Present when the search hides muted
-  # categories; the browser reads the other muted categories from core's fields.
+  # Search
+
+  # Lets the browser leave muted categories out of the search box suggestions (see
+  # SearchSuggestions). Present when the search hides muted categories; the browser reads the
+  # other muted categories from core's fields.
   add_to_serializer(
     :current_user,
     :mute_enhancements_default_muted_category_ids,
     include_condition: -> { SiteSetting.mute_enhancements_search_muted_categories },
   ) { DiscourseMuteEnhancements::SearchSuggestions.default_muted_category_ids(object) }
 
-  Discourse::Application.routes.append do
-    put "/mute-enhancements/groups/:group_id/default-users" =>
-          "discourse_mute_enhancements/group_default_users#update",
-        :constraints => {
-          group_id: /\d+/,
-        }
-    # Lets the browser open Group → Manage → User preferences directly, like core's other tabs.
-    %w[groups g].each do |root_path|
-      get "#{root_path}/:name/manage/user-preferences" => "groups#show",
-          :constraints => {
-            name: RouteFormat.username,
-          }
-    end
-    put "/mute-enhancements/groups/:group_id/hide-preferences" =>
-          "discourse_mute_enhancements/group_hide_preferences#update",
-        :constraints => {
-          group_id: /\d+/,
-        }
-    put "/mute-enhancements/groups/:group_id/muted-topics" =>
-          "discourse_mute_enhancements/group_muted_topics#update",
-        :constraints => {
-          group_id: /\d+/,
-        }
-  end
-
-  # Group mutes and ignores (preferences → Users)
+  # Group mutes and ignores (Preferences > Users)
 
   add_to_serializer(
     :user,
@@ -120,14 +84,18 @@ after_initialize do
     DiscourseMuteEnhancements::GroupMutes.apply_user_update(user, attributes)
   end
 
-  # Group → Manage → User preferences (admins only): default muted and ignored users and groups
-  # for the group's members, preference pages hidden from them and topics muted for them
+  # Group > Manage > User preferences: default muted and ignored users and groups for the
+  # group's members, preference pages hidden from them and topics muted for them
 
   add_to_serializer(
     :group_show,
     :mute_enhancements_default_users,
     include_condition: -> do
-      DiscourseMuteEnhancements::GroupDefaultUsers.enabled? && scope.is_admin? && !object.automatic
+      DiscourseMuteEnhancements.group_setting_visible?(
+        DiscourseMuteEnhancements::GroupDefaultUsers,
+        scope,
+        object,
+      )
     end,
   ) { DiscourseMuteEnhancements::GroupDefaultUsers.usernames(object) }
 
@@ -135,7 +103,11 @@ after_initialize do
     :group_show,
     :mute_enhancements_default_groups,
     include_condition: -> do
-      DiscourseMuteEnhancements::GroupDefaultGroups.enabled? && scope.is_admin? && !object.automatic
+      DiscourseMuteEnhancements.group_setting_visible?(
+        DiscourseMuteEnhancements::GroupDefaultGroups,
+        scope,
+        object,
+      )
     end,
   ) { DiscourseMuteEnhancements::GroupDefaultGroups.serialize(object) }
 
@@ -143,7 +115,11 @@ after_initialize do
     :group_show,
     :mute_enhancements_hidden_preferences,
     include_condition: -> do
-      DiscourseMuteEnhancements::HiddenPreferences.enabled? && scope.is_admin? && !object.automatic
+      DiscourseMuteEnhancements.group_setting_visible?(
+        DiscourseMuteEnhancements::HiddenPreferences,
+        scope,
+        object,
+      )
     end,
   ) { DiscourseMuteEnhancements::HiddenPreferences.group_pages(object) }
 
@@ -151,11 +127,15 @@ after_initialize do
     :group_show,
     :mute_enhancements_muted_topic_ids,
     include_condition: -> do
-      DiscourseMuteEnhancements::GroupMutedTopics.enabled? && scope.is_admin? && !object.automatic
+      DiscourseMuteEnhancements.group_setting_visible?(
+        DiscourseMuteEnhancements::GroupMutedTopics,
+        scope,
+        object,
+      )
     end,
   ) { DiscourseMuteEnhancements::GroupMutedTopics.topic_ids(object) }
 
-  # Present only for members with hidden pages.
+  # The pages hidden from the current user. Present only for members with hidden pages.
   add_to_serializer(
     :current_user,
     :mute_enhancements_hidden_preferences,
@@ -167,7 +147,7 @@ after_initialize do
     end,
   ) { @mute_enhancements_hidden_pages }
 
-  # Keeping them in sync with group membership
+  # Group membership
 
   # Default users go first, so a user the admin chose by name always gets the level chosen for
   # them. A default group can still add an ignore on top of that mute, as when members set both
@@ -185,7 +165,7 @@ after_initialize do
 
   on(:group_destroyed) do |group, _user_ids|
     DiscourseMuteEnhancements::GroupMutes.group_destroyed(group.id)
-    DiscourseMuteEnhancements::GroupDefaultUser.where(group_id: group.id).delete_all
+    DiscourseMuteEnhancements::GroupDefaultUsers.group_destroyed(group.id)
     DiscourseMuteEnhancements::GroupDefaultGroups.group_destroyed(group.id)
   end
 end

@@ -1,10 +1,10 @@
 # frozen_string_literal: true
 
 module DiscourseMuteEnhancements
-  # Hides what users the searching user ignored (`mute_enhancements_search_ignored_users`) or muted
-  # (`mute_enhancements_search_muted_users`) wrote: their posts, and topics they started (a result shows
-  # the topic title, even when someone else's reply is what matched). Staff are never hidden, as
-  # in topics (IgnoredUser.ignored_ids_for).
+  # Hides what users the searching user ignored (`mute_enhancements_search_ignored_users`) or
+  # muted (`mute_enhancements_search_muted_users`) wrote: their posts, and topics they started (a
+  # result shows the topic title, even when someone else's reply is what matched). Staff are
+  # never hidden, as in topics (IgnoredUser.ignored_ids_for).
   #
   # Not hidden:
   #

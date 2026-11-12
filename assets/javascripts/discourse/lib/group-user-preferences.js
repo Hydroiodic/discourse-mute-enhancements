@@ -1,4 +1,4 @@
-// Group → Manage → User preferences, the plugin's page next to Membership. The group show
+// Group > Manage > User preferences, the plugin's page next to Membership. The group show
 // serializer only includes its fields for admins and groups that are not automatic, so the page
 // exists when any of them is there.
 export function hasUserPreferencesPage(group) {

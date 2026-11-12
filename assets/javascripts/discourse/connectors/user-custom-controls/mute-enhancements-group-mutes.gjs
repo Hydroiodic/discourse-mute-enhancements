@@ -12,7 +12,7 @@ function parseIds(value) {
     .map((id) => parseInt(id, 10));
 }
 
-// Preferences → Users: groups whose members the user mutes or ignores. The lists are saved with
+// Preferences > Users: groups whose members the user mutes or ignores. The lists are saved with
 // the page's Save button (see api-initializers/mute-enhancements.js). Core renders this outlet on
 // most preference pages, so the connector only shows itself on Users, the page that saves them.
 export default class MuteEnhancementsGroupMutes extends Component {
