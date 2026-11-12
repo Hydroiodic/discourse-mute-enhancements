@@ -17,6 +17,8 @@ RSpec.describe DiscourseMuteEnhancements::GroupDefaultUsersController do
 
   def muted_ids(user) = MutedUser.where(user:).pluck(:muted_user_id)
   def ignored_ids(user) = IgnoredUser.where(user:).pluck(:ignored_user_id)
+  def default_users = DiscourseMuteEnhancements::GroupDefaultUsers.levels(group)
+  def default_groups = DiscourseMuteEnhancements::GroupDefaultGroups.levels(group)
 
   def save(**params)
     put path,
@@ -38,7 +40,7 @@ RSpec.describe DiscourseMuteEnhancements::GroupDefaultUsersController do
     save
     expect(response.status).to eq(403)
 
-    expect(DiscourseMuteEnhancements::GroupDefaultUser.count).to eq(0)
+    expect(default_users).to be_empty
   end
 
   context "as an admin" do
@@ -97,7 +99,8 @@ RSpec.describe DiscourseMuteEnhancements::GroupDefaultUsersController do
       put path, params: { muted_usernames: "", ignored_usernames: "" }
       group.remove(member)
 
-      expect(DiscourseMuteEnhancements::GroupDefaultUser.count).to eq(0)
+      expect(default_users).to be_empty
+      expect(GroupCustomField.where(group_id: group.id)).to be_empty
       expect(muted_ids(member)).to contain_exactly(spammer.id)
       expect(ignored_ids(member)).to contain_exactly(troll.id)
     end
@@ -115,7 +118,7 @@ RSpec.describe DiscourseMuteEnhancements::GroupDefaultUsersController do
 
       expect(response.status).to eq(422)
       expect(response.parsed_body["errors"].first).to include(moderator.username)
-      expect(DiscourseMuteEnhancements::GroupDefaultUser.count).to eq(0)
+      expect(default_users).to be_empty
     end
 
     it "rejects automatic groups" do
@@ -150,7 +153,7 @@ RSpec.describe DiscourseMuteEnhancements::GroupDefaultUsersController do
     it "removes the defaults with the group" do
       save
       group.destroy!
-      expect(DiscourseMuteEnhancements::GroupDefaultUser.count).to eq(0)
+      expect(GroupCustomField.where(group_id: group.id)).to be_empty
     end
   end
 
@@ -167,9 +170,7 @@ RSpec.describe DiscourseMuteEnhancements::GroupDefaultUsersController do
     fab!(:noisy_group) { Fabricate(:group, name: "noisy") }
     fab!(:noisy_member) { Fabricate(:user).tap { |u| noisy_group.add(u) } }
 
-    def group_mutes(user)
-      DiscourseMuteEnhancements::GroupMute.where(user:).pluck(:group_id, :level).to_h
-    end
+    def group_mutes(user) = DiscourseMuteEnhancements::GroupMutes.levels(user)
 
     def save_groups(muted: noisy_group.id.to_s, ignored: loud_group.id.to_s, **params)
       put path,
@@ -221,10 +222,9 @@ RSpec.describe DiscourseMuteEnhancements::GroupDefaultUsersController do
     end
 
     it "does not change a group the member already muted or ignored" do
-      DiscourseMuteEnhancements::GroupMute.create!(
-        user: member,
-        group: loud_group,
-        level: DiscourseMuteEnhancements::LEVELS[:mute],
+      DiscourseMuteEnhancements::UserStore.merge(
+        "group_mutes",
+        { member.id => { loud_group.id => DiscourseMuteEnhancements::LEVELS[:mute] } },
       )
 
       save_groups(update_existing_users: true)
@@ -240,7 +240,7 @@ RSpec.describe DiscourseMuteEnhancements::GroupDefaultUsersController do
       save_groups(muted: "", ignored: "")
       group.remove(member)
 
-      expect(DiscourseMuteEnhancements::GroupDefaultGroup.count).to eq(0)
+      expect(default_groups).to be_empty
       expect(group_mutes(member).keys).to contain_exactly(noisy_group.id, loud_group.id)
     end
 
@@ -263,8 +263,8 @@ RSpec.describe DiscourseMuteEnhancements::GroupDefaultUsersController do
       expect(response.status).to eq(422)
       expect(response.parsed_body["errors"].first).to include(group.name)
 
-      expect(DiscourseMuteEnhancements::GroupDefaultGroup.count).to eq(0)
-      expect(DiscourseMuteEnhancements::GroupDefaultUser.count).to eq(0)
+      expect(default_groups).to be_empty
+      expect(default_users).to be_empty
     end
 
     it "allows hidden groups, which members can remove but not add back" do
@@ -303,7 +303,7 @@ RSpec.describe DiscourseMuteEnhancements::GroupDefaultUsersController do
     it "leaves the default groups alone when they are not sent" do
       save_groups
       save
-      expect(DiscourseMuteEnhancements::GroupDefaultGroup.count).to eq(2)
+      expect(default_groups.keys).to contain_exactly(noisy_group.id, loud_group.id)
     end
 
     it "logs the groups" do
@@ -329,13 +329,14 @@ RSpec.describe DiscourseMuteEnhancements::GroupDefaultUsersController do
 
     it "removes the defaults with either group" do
       save_groups
+      # Another field of the group, which is not JSON.
+      DiscourseMuteEnhancements::GroupMutedTopics.update(group, Fabricate(:topic).id.to_s)
+
       loud_group.destroy!
-      expect(DiscourseMuteEnhancements::GroupDefaultGroup.pluck(:target_group_id)).to eq(
-        [noisy_group.id],
-      )
+      expect(default_groups).to eq(noisy_group.id => DiscourseMuteEnhancements::LEVELS[:mute])
 
       group.destroy!
-      expect(DiscourseMuteEnhancements::GroupDefaultGroup.count).to eq(0)
+      expect(GroupCustomField.where(group_id: group.id)).to be_empty
     end
 
     it "is off without group mutes" do
@@ -344,8 +345,8 @@ RSpec.describe DiscourseMuteEnhancements::GroupDefaultUsersController do
 
       expect(response.status).to eq(200)
       expect(response.parsed_body).not_to have_key("muted_group_ids")
-      expect(DiscourseMuteEnhancements::GroupDefaultGroup.count).to eq(0)
-      expect(DiscourseMuteEnhancements::GroupDefaultUser.count).to eq(1)
+      expect(default_groups).to be_empty
+      expect(default_users.keys).to eq([spammer.id])
 
       get "/groups/#{group.name}.json"
       expect(response.parsed_body["group"]).not_to have_key("mute_enhancements_default_groups")

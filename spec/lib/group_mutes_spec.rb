@@ -15,7 +15,8 @@ RSpec.describe DiscourseMuteEnhancements::GroupMutes do
 
   def muted_ids = MutedUser.where(user:).pluck(:muted_user_id)
   def ignored_ids = IgnoredUser.where(user:).pluck(:ignored_user_id)
-  def levels = DiscourseMuteEnhancements::GroupMute.where(user:).pluck(:group_id, :level).to_h
+  def levels = described_class.levels(user)
+  def store_rows = PluginStoreRow.where(plugin_name: DiscourseMuteEnhancements::PLUGIN_NAME)
 
   it "mutes every member of a muted group except the user and staff" do
     described_class.update(user, mute: [group.id])
@@ -72,7 +73,7 @@ RSpec.describe DiscourseMuteEnhancements::GroupMutes do
 
     expect(levels).to be_empty
     expect(muted_ids).to be_empty
-    expect(DiscourseMuteEnhancements::DerivedMute.count).to eq(0)
+    expect(store_rows).to be_empty
   end
 
   it "keeps users the user muted or ignored by hand" do
@@ -178,6 +179,40 @@ RSpec.describe DiscourseMuteEnhancements::GroupMutes do
 
     expect(levels).to be_empty
     expect(muted_ids).to be_empty
+    expect(store_rows).to be_empty
+  end
+
+  it "cleans up the group mutes of deleted users" do
+    described_class.update(user, mute: [group.id])
+    UserDestroyer.new(Discourse.system_user).destroy(user)
+
+    described_class.reconcile_all
+    expect(store_rows).to be_empty
+  end
+
+  it "keeps everything in core's plugin store, one row per user and kind" do
+    other_group = Fabricate(:group, visibility_level: Group.visibility_levels[:public])
+    other_group.add(member)
+    described_class.update(user, mute: [group.id], ignore: [other_group.id])
+
+    expect(store_rows.pluck(:key)).to contain_exactly(
+      "group_mutes:#{user.id}",
+      "derived_mutes:#{user.id}",
+      "derived_ignores:#{user.id}",
+    )
+    expect(levels).to eq(group.id => 1, other_group.id => 2)
+    expect(described_class.derived_target_ids(user, :mute)).to contain_exactly(other_member.id)
+    expect(described_class.derived_target_ids(user, :ignore)).to contain_exactly(member.id)
+  end
+
+  it "is not confused by other plugins' rows" do
+    PluginStore.set("another-plugin", "group_mutes:#{user.id}", "not json")
+    described_class.update(user, mute: [group.id])
+
+    group.add(newcomer = Fabricate(:user))
+    expect(muted_ids).to include(newcomer.id)
+    described_class.reconcile_all
+    expect(PluginStore.get("another-plugin", "group_mutes:#{user.id}")).to eq("not json")
   end
 
   it "stops following members when group mutes are off" do

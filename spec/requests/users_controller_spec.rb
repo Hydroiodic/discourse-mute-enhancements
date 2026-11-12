@@ -84,7 +84,7 @@ RSpec.describe UsersController do
     hidden = Fabricate(:group, visibility_level: Group.visibility_levels[:owners])
     save(mute_enhancements_muted_group_ids: hidden.id.to_s)
 
-    expect(DiscourseMuteEnhancements::GroupMute.count).to eq(0)
+    expect(PluginStoreRow.where(plugin_name: DiscourseMuteEnhancements::PLUGIN_NAME)).to be_empty
   end
 
   it "lets admins edit the groups of other users" do

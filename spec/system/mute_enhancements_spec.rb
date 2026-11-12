@@ -172,9 +172,9 @@ RSpec.describe "Mute enhancements" do
 
       expect(page).to have_css(".mute-enhancements-save-default-users[disabled]")
       expect(MutedUser.where(user: member).pluck(:muted_user_id)).to contain_exactly(spammer.id)
-      expect(
-        DiscourseMuteEnhancements::GroupDefaultUser.where(group:).pluck(:target_user_id),
-      ).to contain_exactly(spammer.id)
+      expect(DiscourseMuteEnhancements::GroupDefaultUsers.levels(group)).to eq(
+        spammer.id => DiscourseMuteEnhancements::LEVELS[:mute],
+      )
 
       page.refresh
       expect(default_muted).to have_selected_name(spammer.username)
@@ -196,9 +196,9 @@ RSpec.describe "Mute enhancements" do
       default_notifications_modal.click_yes
 
       expect(page).to have_css(".mute-enhancements-save-default-users[disabled]")
-      expect(
-        DiscourseMuteEnhancements::GroupMute.where(user: member).pluck(:group_id, :level),
-      ).to contain_exactly([spam_group.id, DiscourseMuteEnhancements::LEVELS[:ignore]])
+      expect(DiscourseMuteEnhancements::GroupMutes.levels(member)).to eq(
+        spam_group.id => DiscourseMuteEnhancements::LEVELS[:ignore],
+      )
       expect(IgnoredUser.where(user: member).pluck(:ignored_user_id)).to contain_exactly(spammer.id)
 
       page.refresh

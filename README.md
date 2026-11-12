@@ -131,7 +131,7 @@
 - 忽略的有效期是“永久”（和核心忽略对话框里的“永久”一样是 1000 年后），直到取消群组。这些记录不计入核心通知版主“某用户被很多人忽略”的统计（`Jobs::IgnoredUsersSummary`）。
 - 一个群组只能是忽略或免打扰之一。和核心一样，已经忽略的人不会再额外设为免打扰。
 
-插件另外用一张表（`mute_enhancements_derived_mutes`）记住哪些记录是群组带来的：
+插件另外记下哪些记录是群组带来的（见[数据存在哪里](#数据存在哪里)）：
 
 - 用户之前自己设置过的免打扰、忽略不受影响，取消群组时也不会被删掉。
 - 群组带来的记录不出现在“免打扰的用户”“忽略的用户”列表里，列表只显示自己单独设置的人；保存页面时插件会保留这些记录。
@@ -167,7 +167,7 @@
 
 ### 默认屏蔽的群组
 
-成员加入时，插件替成员把这些群组设为忽略或免打扰，等于成员自己在 个人设置 → 用户 里选了这个群组（写入成员自己的 `mute_enhancements_group_mutes` 记录），所以之后那个群组的成员变化（有人加入、退出、成为管理人员）都会跟着生效，规则见[免打扰和忽略群组](#免打扰和忽略群组)。其余和默认屏蔽的用户一致：
+成员加入时，插件替成员把这些群组设为忽略或免打扰，等于成员自己在 个人设置 → 用户 里选了这个群组（写入成员自己的群组屏蔽记录），所以之后那个群组的成员变化（有人加入、退出、成为管理人员）都会跟着生效，规则见[免打扰和忽略群组](#免打扰和忽略群组)。其余和默认屏蔽的用户一致：
 
 - 成员已经免打扰或忽略了这个群组的（不论哪一级），不改动。
 - 这个设置属于成员自己，出现在成员的“忽略的群组”“免打扰的群组”里，可以自己取消。退出群组、管理员删掉某个默认群组，都不会撤销。
@@ -179,7 +179,7 @@
 - 和默认屏蔽的用户一样，不检查成员的信任等级是否达到免打扰、忽略别人所需的级别。
 - 需要同时打开 `mute_enhancements_group_mutes`。关掉它时页面上不显示这两栏，保存也不改动已有的默认群组。
 
-默认群组存在 `mute_enhancements_group_default_groups` 表里（`DiscourseMuteEnhancements::GroupDefaultGroups`），群组或被选的群组删除时一并删除。
+默认群组存在群组的自定义字段 `mute_enhancements_default_groups` 里（`DiscourseMuteEnhancements::GroupDefaultGroups`），群组或被选的群组删除时一并删除。
 
 配合[隐藏群组](#隐藏群组的-group_users)，可以把一批用户悄悄放进一个隐藏群组，让他们默认屏蔽某些用户、群组、类别、标签。被屏蔽的群组也可以是隐藏的，但成员会知道它的名字和成员（见上）。
 
@@ -192,7 +192,7 @@
 - 改动立即保存，并记一条管理日志。成员刷新页面后生效。
 - 管理员和版主即使在群组里也不受影响，避免管理人员把自己锁在外面。
 - 只是隐藏页面：页面上已有的设置照常生效，服务端也照常接受修改，成员仍能在别处修改，例如在用户卡片上忽略或免打扰别人、在类别和标签页面改通知级别。
-- 隐藏的页面存在群组的自定义字段 `mute_enhancements_hide_preferences` 里，逗号分隔（`DiscourseMuteEnhancements::HiddenPreferences`）。这个功能最早只有一个开关，同时隐藏“通知”和“用户”，存的是 `t`；迁移会把它改成只隐藏“用户”，之后“通知”又作为单独的一项加了回来。
+- 隐藏的页面存在群组的自定义字段 `mute_enhancements_hide_preferences` 里，逗号分隔（`DiscourseMuteEnhancements::HiddenPreferences`）。
 
 ## 给群组成员屏蔽的话题
 
@@ -238,4 +238,12 @@
 
 按 Discourse 插件的通常方式安装：https://meta.discourse.org/t/install-a-plugin/19157
 
-插件有数据库迁移（四张 `mute_enhancements_*` 表），安装后重建容器时会自动执行。
+插件没有数据库迁移，不建自己的表，见[数据存在哪里](#数据存在哪里)。
+
+## 数据存在哪里
+
+数据都存在核心已有的表里：
+
+- 用户免打扰、忽略的群组，以及哪些免打扰、忽略记录是群组带来的，存在 `plugin_store_rows`（核心给插件存数据用的 PluginStore），每个用户每种一行 JSON，键是 `group_mutes:用户ID`、`derived_mutes:用户ID`、`derived_ignores:用户ID`（`DiscourseMuteEnhancements::UserStore`）。每次写入都在一条 SQL 里增删 JSON 的键，同时写同一行不会互相覆盖。没有放在用户的自定义字段里，是因为核心保存用户自定义字段时，会按它先前读到的内容把这个用户的字段整体写回，可能删掉插件在这期间写入的记录；读用户自定义字段时也会一次读出这个用户的所有行。
+- 群组的设置存在群组的自定义字段里：默认屏蔽的用户 `mute_enhancements_default_users` 和群组 `mute_enhancements_default_groups`（JSON），隐藏的个人设置页面 `mute_enhancements_hide_preferences`，屏蔽的话题 `mute_enhancements_muted_topics`，增强屏蔽选项 `mute_enhancements_enhanced_ignore`。
+- 免打扰、忽略本身写在核心的 `muted_users`、`ignored_users` 里，见[免打扰和忽略群组](#免打扰和忽略群组)。

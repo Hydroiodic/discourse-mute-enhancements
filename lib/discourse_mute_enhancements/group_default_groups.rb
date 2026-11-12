@@ -17,7 +17,11 @@ module DiscourseMuteEnhancements
   # purpose: admins see every group anyway, and it is acceptable that members see a hidden group's
   # name in their preferences and can tell who is in it from who they mute or ignore. Members can
   # remove such a group mute, but cannot add it back themselves.
+  #
+  # Kept in a group custom field, group id => level (see GroupLevels).
   module GroupDefaultGroups
+    FIELD = "mute_enhancements_default_groups"
+
     class InvalidGroups < StandardError
     end
 
@@ -25,16 +29,17 @@ module DiscourseMuteEnhancements
       GroupDefaultUsers.enabled? && GroupMutes.enabled?
     end
 
+    # The group's defaults, group id => level.
+    def self.levels(group)
+      GroupLevels.read(group.id, FIELD)
+    end
+
     def self.group_ids(group)
-      rows =
-        GroupDefaultGroup
-          .where(group_id: group.id)
-          .order(:target_group_id)
-          .pluck(:level, :target_group_id)
+      levels = levels(group).sort.to_h
       LEVELS.to_h do |level, value|
         [
           :"#{level == :mute ? "muted" : "ignored"}_group_ids",
-          rows.filter_map { |l, id| id if l == value },
+          levels.filter_map { |id, l| id if l == value },
         ]
       end
     end
@@ -67,27 +72,14 @@ module DiscourseMuteEnhancements
       muted = parse_ids(muted_group_ids) - ignored
       desired =
         muted.to_h { |id| [id, LEVELS[:mute]] }.merge(ignored.to_h { |id| [id, LEVELS[:ignore]] })
-      current = GroupDefaultGroup.where(group_id: group.id).pluck(:target_group_id, :level).to_h
+      current = levels(group)
 
       added = desired.keys - current.keys
       invalid = added - eligible_groups(group).where(id: added).pluck(:id)
       raise InvalidGroups, (names(invalid).presence || invalid).join(", ") if invalid.present?
 
       changed = desired.reject { |group_id, level| current[group_id] == level }
-
-      GroupDefaultGroup.transaction do
-        GroupDefaultGroup
-          .where(group_id: group.id)
-          .where.not(target_group_id: desired.keys)
-          .delete_all
-        changed.each do |target_group_id, level|
-          GroupDefaultGroup.upsert(
-            { group_id: group.id, target_group_id:, level: },
-            unique_by: %i[group_id target_group_id],
-            update_only: %i[level],
-          )
-        end
-      end
+      GroupLevels.write(group.id, FIELD, desired) if desired != current
 
       return [] if !update_existing_users || changed.empty?
       apply(group, nil, only_target_ids: changed.keys)
@@ -98,33 +90,27 @@ module DiscourseMuteEnhancements
     def self.apply(group, member_ids, only_target_ids: nil)
       return [] if !enabled? || group.automatic || member_ids&.empty?
 
-      defaults = GroupDefaultGroup.where(group_id: group.id)
-      defaults = defaults.where(target_group_id: only_target_ids) if only_target_ids
-      return [] if !defaults.exists?
+      defaults = levels(group)
+      defaults = defaults.slice(*only_target_ids) if only_target_ids
+      defaults = defaults.slice(*Group.where(id: defaults.keys, automatic: false).pluck(:id))
+      return [] if defaults.empty?
 
-      params = { group_id: group.id, member_ids:, target_ids: only_target_ids, now: Time.zone.now }
-      user_ids = DB.query_single(<<~SQL, params).uniq
-        INSERT INTO mute_enhancements_group_mutes (user_id, group_id, level, created_at, updated_at)
-        SELECT gu.user_id, d.target_group_id, d.level, :now, :now
-        FROM mute_enhancements_group_default_groups d
-        JOIN groups t ON t.id = d.target_group_id AND NOT t.automatic
-        JOIN group_users gu ON gu.group_id = d.group_id
-          #{member_ids ? "AND gu.user_id IN (:member_ids)" : ""}
-        WHERE d.group_id = :group_id
-          #{only_target_ids ? "AND d.target_group_id IN (:target_ids)" : ""}
-        ON CONFLICT (user_id, group_id) DO NOTHING
-        RETURNING user_id
-      SQL
+      members = GroupUser.where(group_id: group.id)
+      members = members.where(user_id: member_ids) if member_ids
+      user_ids =
+        UserStore.merge(
+          GroupMutes::STORE,
+          members.pluck(:user_id).to_h { |user_id| [user_id, defaults] },
+          keep_existing: true,
+        )
 
       GroupMutes.reconcile(user_ids:) if user_ids.present?
       user_ids
     end
 
     def self.group_destroyed(group_id)
-      GroupDefaultGroup
-        .where(group_id:)
-        .or(GroupDefaultGroup.where(target_group_id: group_id))
-        .delete_all
+      GroupCustomField.where(group_id:, name: FIELD).delete_all
+      GroupLevels.remove_everywhere(FIELD, group_id)
     end
 
     def self.parse_ids(value)

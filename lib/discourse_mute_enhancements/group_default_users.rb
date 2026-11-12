@@ -13,7 +13,11 @@ module DiscourseMuteEnhancements
   #
   # Staff cannot be muted or ignored in core, so they cannot be defaults. Automatic groups have no
   # defaults, as their members are not added by hand.
+  #
+  # Kept in a group custom field, user id => level (see GroupLevels).
   module GroupDefaultUsers
+    FIELD = "mute_enhancements_default_users"
+
     class InvalidUsers < StandardError
     end
 
@@ -21,17 +25,18 @@ module DiscourseMuteEnhancements
       SiteSetting.mute_enhancements_enabled && SiteSetting.mute_enhancements_group_default_users
     end
 
+    # The group's defaults, user id => level.
+    def self.levels(group)
+      GroupLevels.read(group.id, FIELD)
+    end
+
     def self.usernames(group)
-      rows =
-        GroupDefaultUser
-          .where(group_id: group.id)
-          .joins(:target_user)
-          .order("users.username_lower")
-          .pluck(:level, "users.username")
+      levels = levels(group)
+      rows = User.where(id: levels.keys).order(:username_lower).pluck(:id, :username)
       LEVELS.to_h do |level, value|
         [
           :"#{level == :mute ? "muted" : "ignored"}_usernames",
-          rows.filter_map { |l, name| name if l == value },
+          rows.filter_map { |id, name| name if levels[id] == value },
         ]
       end
     end
@@ -47,22 +52,9 @@ module DiscourseMuteEnhancements
 
       desired =
         muted.to_h { |u| [u.id, LEVELS[:mute]] }.merge(ignored.to_h { |u| [u.id, LEVELS[:ignore]] })
-      current = GroupDefaultUser.where(group_id: group.id).pluck(:target_user_id, :level).to_h
+      current = levels(group)
       changed = desired.reject { |user_id, level| current[user_id] == level }
-
-      GroupDefaultUser.transaction do
-        GroupDefaultUser
-          .where(group_id: group.id)
-          .where.not(target_user_id: desired.keys)
-          .delete_all
-        changed.each do |target_user_id, level|
-          GroupDefaultUser.upsert(
-            { group_id: group.id, target_user_id:, level: },
-            unique_by: %i[group_id target_user_id],
-            update_only: %i[level],
-          )
-        end
-      end
+      GroupLevels.write(group.id, FIELD, desired) if desired != current
 
       return [] if !update_existing_users || changed.empty?
       apply(group, nil, only_target_ids: changed.keys)
@@ -73,27 +65,28 @@ module DiscourseMuteEnhancements
     def self.apply(group, member_ids, only_target_ids: nil)
       return [] if !enabled? || group.automatic || member_ids&.empty?
 
-      targets = GroupDefaultUser.where(group_id: group.id)
-      targets = targets.where(target_user_id: only_target_ids) if only_target_ids
-      return [] if !targets.exists?
+      defaults = levels(group)
+      defaults = defaults.slice(*only_target_ids) if only_target_ids
+      return [] if defaults.empty?
 
       params = {
         group_id: group.id,
         member_ids:,
-        target_ids: only_target_ids,
+        defaults: defaults.to_json,
         now: Time.zone.now,
         forever: DiscourseMuteEnhancements.forever,
       }
       pairs = <<~SQL
         SELECT m.id AS user_id, d.target_user_id, d.level
-        FROM mute_enhancements_group_default_users d
+        FROM (
+          SELECT e.key::int AS target_user_id, e.value::int AS level
+          FROM jsonb_each_text(CAST(:defaults AS jsonb)) e
+        ) d
         JOIN users t ON t.id = d.target_user_id AND NOT t.admin AND NOT t.moderator
-        JOIN group_users gu ON gu.group_id = d.group_id
+        JOIN group_users gu ON gu.group_id = :group_id
           #{member_ids ? "AND gu.user_id IN (:member_ids)" : ""}
         JOIN users m ON m.id = gu.user_id AND m.id <> d.target_user_id
-        WHERE d.group_id = :group_id
-          #{only_target_ids ? "AND d.target_user_id IN (:target_ids)" : ""}
-          AND NOT EXISTS (
+        WHERE NOT EXISTS (
             SELECT 1 FROM muted_users mu
             WHERE mu.user_id = m.id AND mu.muted_user_id = d.target_user_id
           )
@@ -127,7 +120,7 @@ module DiscourseMuteEnhancements
     end
 
     def self.group_destroyed(group_id)
-      GroupDefaultUser.where(group_id:).delete_all
+      GroupCustomField.where(group_id:, name: FIELD).delete_all
     end
 
     def self.find_users(usernames)
