@@ -19,9 +19,16 @@ zh_CN:
         saved: "已保存"
         saved_and_applied:
           other: "已保存，并应用到 %{count} 位现有成员"
+      hide_preferences:
+        title: "成员的个人设置"
+        label: "群组成员看不到个人设置里的“通知”和“用户”两个页面"
+        description: "打开后，这个群组的成员（管理员和版主除外）在个人设置里看不到这两个页面，打开指向它们的链接会转到“账户”。只是隐藏页面：上面已有的设置照常生效，成员也仍能在用户卡片上忽略或免打扰别人。改动立即保存，成员刷新页面后生效。只有管理员能看到和修改这一项。"
+        turned_on: "已对这个群组的成员隐藏这两个页面"
+        turned_off: "这个群组的成员可以看到这两个页面了"
   admin_js:
     admin:
       logs:
         staff_actions:
           actions:
             mute_enhancements_group_default_users: "修改群组默认屏蔽的用户和群组"
+            mute_enhancements_group_hide_preferences: "修改是否对群组成员隐藏个人设置页面"

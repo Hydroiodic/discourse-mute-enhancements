@@ -28,6 +28,17 @@ RSpec.describe "Mute enhancements" do
       expect(page).to have_css(".saved")
     end
 
+    it "only shows the groups on the Users page, which saves them" do
+      sign_in(user)
+      visit("/u/#{user.username}/preferences/account")
+      expect(page).to have_css(".user-nav__preferences-account")
+      expect(page).to have_no_css(".mute-enhancements-muted-groups")
+
+      visit("/u/#{user.username}/preferences/users")
+      expect(page).to have_css(".mute-enhancements-muted-groups")
+      expect(page).to have_css(".mute-enhancements-ignored-groups")
+    end
+
     it "mutes a group from the preferences page, then ignores it instead" do
       sign_in(user)
       visit("/u/#{user.username}/preferences/users")
@@ -201,6 +212,48 @@ RSpec.describe "Mute enhancements" do
 
       expect(page).to have_css(".group-form-automatic-membership-automatic")
       expect(page).to have_no_css(".mute-enhancements-default-users")
+      expect(page).to have_no_css(".mute-enhancements-hide-preferences")
+    end
+  end
+
+  describe "hiding preference pages from a group's members" do
+    it "is turned on by admins on the group's Membership page" do
+      sign_in(admin)
+      visit("/g/#{group.name}/manage/membership")
+
+      find(".mute-enhancements-hide-preferences-checkbox").click
+      expect(page).to have_css(
+        ".mute-enhancements-hide-preferences-checkbox:checked:not([disabled])",
+      )
+      expect(DiscourseMuteEnhancements::HiddenPreferences.group_enabled?(group)).to eq(true)
+
+      page.refresh
+      expect(page).to have_css(".mute-enhancements-hide-preferences-checkbox:checked")
+    end
+
+    it "hides the Notifications and Users pages from members" do
+      DiscourseMuteEnhancements::HiddenPreferences.update(group, true)
+      sign_in(member)
+
+      visit("/u/#{member.username}/preferences/account")
+      expect(page).to have_css(".user-nav__preferences-account")
+      expect(page).to have_no_css(".user-nav__preferences-notifications")
+      expect(page).to have_no_css(".user-nav__preferences-users")
+
+      visit("/u/#{member.username}/preferences/users")
+      expect(page).to have_current_path("/u/#{member.username}/preferences/account")
+
+      visit("/u/#{member.username}/preferences/notifications")
+      expect(page).to have_current_path("/u/#{member.username}/preferences/account")
+    end
+
+    it "keeps the pages for everyone else" do
+      DiscourseMuteEnhancements::HiddenPreferences.update(group, true)
+      sign_in(user)
+
+      visit("/u/#{user.username}/preferences/users")
+      expect(page).to have_current_path("/u/#{user.username}/preferences/users")
+      expect(page).to have_css(".user-nav__preferences-notifications")
     end
   end
 end

@@ -160,6 +160,16 @@
 
 配合[隐藏群组](#隐藏群组的-group_users)，可以把一批用户悄悄放进一个隐藏群组，让他们默认屏蔽某些用户、群组、类别、标签。被屏蔽的群组也可以是隐藏的，但成员会知道它的名字和成员（见上）。
 
+## 对群组成员隐藏个人设置页面
+
+群组 → 管理 → 成员资格 页面多了“成员的个人设置”一项（每个群组默认关闭）。打开后，这个群组的成员在个人设置里看不到“通知”和“用户”两个页面：顶部标签栏和侧边栏的用户导航里都不显示，直接打开这两个页面的链接会转到“账户”。
+
+- 只有网站管理员能看到和修改这一项；群组拥有者和版主看不到。改动立即保存，并记一条管理日志。
+- 管理员和版主即使在群组里也不受影响，避免管理人员把自己锁在外面。自动群组没有这一项。
+- 只是隐藏页面：这两个页面上已有的设置照常生效，服务端也照常接受修改，成员仍能在用户卡片上忽略或免打扰别人。
+- 成员刷新页面后生效。
+- 开关存在群组的自定义字段 `mute_enhancements_hide_preferences` 里（`DiscourseMuteEnhancements::HiddenPreferences`）。
+
 ## 设置
 
 - `mute_enhancements_enabled`：总开关，默认打开。
@@ -170,6 +180,7 @@
 - `mute_enhancements_hide_invisible_group_users`：`group_users` 只列出看得到的群组，默认打开。
 - `mute_enhancements_group_mutes`：允许用户免打扰、忽略群组，默认打开。
 - `mute_enhancements_group_default_users`：允许管理员设置群组默认屏蔽的用户和群组（群组还需要打开 `mute_enhancements_group_mutes`），默认打开。
+- `mute_enhancements_group_hide_preferences`：允许管理员对群组成员隐藏个人设置的“通知”“用户”页面，默认打开（每个群组仍默认不隐藏）。
 
 ## 安装
 

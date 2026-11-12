@@ -8,6 +8,7 @@ en:
     mute_enhancements_hide_invisible_group_users: "Only list groups the user can see in group_users of the user profile API (such as /u/username.json), so it does not reveal the IDs of groups the user is in but cannot see. Admins still get the full list."
     mute_enhancements_group_mutes: "Let users mute or ignore whole groups in Preferences → Users. The group's members (except admins and moderators) are muted or ignored, members who join later are too, and members who leave no longer are."
     mute_enhancements_group_default_users: "Let admins choose, on a group's Manage → Membership page, users that new members of the group mute or ignore by default, and groups too when mute_enhancements_group_mutes is enabled."
+    mute_enhancements_group_hide_preferences: "Let admins hide the Notifications and Users pages of the preferences from a group's members (except admins and moderators), on the group's Manage → Membership page. Off for every group by default."
   mute_enhancements:
     errors:
       staff_default_users: "Admins and moderators cannot be muted or ignored: %{usernames}"

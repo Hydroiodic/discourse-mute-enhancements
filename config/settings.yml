@@ -23,3 +23,6 @@ plugins:
   mute_enhancements_group_default_users:
     default: true
     client: false
+  mute_enhancements_group_hide_preferences:
+    default: true
+    client: false
