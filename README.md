@@ -2,7 +2,7 @@
 
 免打扰增强。原名 discourse-search-tag-filter，功能变多后改了名字，设置名也从 `search_tag_filter_*` 改成了 `mute_enhancements_*`。
 
-1. [搜索](#搜索)：用户设为免打扰或忽略的标签、类别、用户，在搜索结果里看不到——既不出现它们的话题和帖子，也不出现在结果的用户、类别、标签部分。
+1. [搜索](#搜索)：用户设为免打扰或忽略的标签、类别、用户，在搜索结果里看不到——既不出现它们的话题和帖子，也不出现在结果的用户、类别、标签部分，搜索框里输入 `@`、`#` 时也不会联想出它们。
 2. [隐藏群组的 group_users](#隐藏群组的-group_users)：用户资料接口不再暴露用户看不到的群组的 ID。
 3. [免打扰和忽略群组](#免打扰和忽略群组)：用户可以把整个群组设为免打扰或忽略，群组成员随之被免打扰或忽略。
 4. [群组默认屏蔽的用户](#群组默认屏蔽的用户)：管理员可以给群组设置默认免打扰、忽略的用户，新成员加入时自动生效。群组默认免打扰的类别和标签用核心自带的功能。
@@ -14,9 +14,10 @@
 - 带有用户已设为免打扰的标签的话题；
 - 用户已设为免打扰的类别里的话题；
 - 用户已忽略或已设为免打扰的那些用户发的帖子，以及他们创建的话题；
-- 搜索结果的用户、类别、标签部分里的这些用户、类别、标签。
+- 搜索结果的用户、类别、标签部分里的这些用户、类别、标签；
+- 搜索框里输入 `@`、`#` 时联想出的这些用户、类别、标签，以及完整搜索页“用户”“类别/标签”类型里的它们，见[联想](#联想和完整搜索页的用户类别标签类型)。
 
-顶部的快速搜索、完整搜索页（包括“用户”“类别/标签”类型）、分页、`in:all`、`in:all-posts`、`order:` 等都会过滤；discourse-ai 的语义搜索（AI 搜索结果、AI 快速搜索）也会过滤。
+顶部的快速搜索、完整搜索页、分页、`in:all`、`in:all-posts`、`order:` 等都会过滤；discourse-ai 的语义搜索（AI 搜索结果、AI 快速搜索）也会过滤。
 
 ### 通用规则
 
@@ -27,8 +28,6 @@
 - 匿名搜索。话题列表会对匿名用户应用 `default_tags_muted`、`default_categories_muted`，这里不应用：水源开启了 `login_required`，匿名搜索只来自站内的程序调用（例如 discourse-ai 的搜索工具），不应该因此少掉这些话题。
 
 直接输入话题编号或链接搜索时，仍会返回那个话题。
-
-搜索框里输入 `@` 或 `#` 时弹出的用户、类别、标签联想不经过搜索，用的是发帖编辑器、用户选择框共用的接口（`/u/search/users`、`/tags/filter/search`，类别联想在浏览器里完成），所以仍会列出这些用户、类别、标签。
 
 ### 免打扰的标签
 
@@ -69,6 +68,17 @@
 
 搜索结果的用户部分不显示这些用户（管理员和版主除外），没有例外。
 
+### 联想和完整搜索页的“用户”“类别/标签”类型
+
+搜索框（顶部的搜索菜单和完整搜索页的输入框）里输入 `@` 或 `#` 时弹出的用户、类别、标签联想不经过 `Search`：用户和标签分别查 `/u/search/users`、`/tags/filter/search`，类别在浏览器里查。完整搜索页的“用户”“类别/标签”类型也是用这几种方式查的，不是 `Search` 的结果。插件让它们和搜索结果的用户、类别、标签部分一样：
+
+- 不出现忽略、免打扰的用户，管理员和版主除外。`@` 后面还没输入时列出的最近活跃用户也一样。
+- 不出现免打扰的类别，范围同上（包括子类别和 `mute_all_categories_by_default`）。
+- 不出现免打扰的标签。
+- 没有例外；跟随下面的 `mute_enhancements_search_*` 设置。匿名用户不过滤。
+
+发帖编辑器和聊天里的 `@` 提及、`#` 联想，用户和标签选择框（例如私信收件人、话题的标签、完整搜索页高级搜索里的选择框），以及用户名录（`/u`），仍然列出所有人和所有类别、标签，以免想提及、选择的时候找不到。
+
 ### 实现
 
 把 `DiscourseMuteEnhancements::SearchExtension` prepend 到 `::Search` 上：
@@ -77,6 +87,13 @@
 - 覆盖 `user_search`、`category_search`、`tags_search`：在 `User`/`Category.where.not(id: ...).scoping { super() }` 里调用核心的方法，不复制核心的查询。`category_search` 进入 scoping 之前先算好 `secure_category_ids`，因为 Guardian 会缓存它，而它本身要查 `Category`。标签用 `Tag.where("tags.id NOT IN (?)", ...)`：核心的 `Tag.visible` 会 `merge` 一个自带 `tags.id` 条件的查询，`merge` 会替换掉同一列上已有的条件，写成 SQL 字符串才不会被丢掉。
 
 为了判断用户明确要求了哪些标签和用户，`tags:`、`#`、`user:`、`@` 过滤器的正则和分词方式复制自核心 `lib/search.rb`；类别是否被明确指定，直接用核心过滤器设置的 `@category_filter_matched`（核心用它来显示搜索优先级为“忽略”的类别）。核心改动这些过滤器时需要同步。
+
+联想用的接口发帖编辑器、聊天、选择框也在用，而且聊天里的 `@` 提及发出的参数和搜索框完全一样，服务器分不出来。所以由浏览器标记来自搜索的请求（`assets/javascripts/discourse/lib/search-suggestions.js`），服务器只过滤带标记的请求（`lib/discourse_mute_enhancements/search_suggestions.rb`）：
+
+- 来自搜索的请求：焦点在搜索框里（`.search-menu-container`、`.search-bar__field`）时发出的；或者完整搜索页正按“用户”“类别/标签”类型搜索，而请求的关键词就是页面的搜索词（插件在 `full-page-search` 控制器的 `_search` 里记下搜索词）。
+- 用户和标签：用 `$.ajaxPrefilter` 给这两个接口的请求加上 `mute_enhancements_search=true`。服务器把 `UsersControllerExtension` prepend 到 `UsersController`，在 `User.where.not(id: ...).scoping { super() }` 里调用核心的 `search_users`（`UserSearch` 的查询都从 `User` 开始）；把 `TagsControllerExtension` prepend 到 `TagsController`，把免打扰的标签加进 `selected_tag_ids`，核心本来就会把已选的标签排除在结果外。带 `filterForInput` 的请求（标签选择框）不加：这时 `selected_tag_ids` 还会被当作父标签、影响标签组“每个话题只能选一个”的规则。
+- 类别：包装 `Category.search`，多取一些再去掉免打扰的类别。插件 API 没有修改模型静态方法的办法，`modifyClass` 用在模型上也已弃用，所以直接替换。免打扰的类别取自核心发给浏览器的 `muted_category_ids`、`indirectly_muted_category_ids`，用户修改类别级别时会即时更新；`mute_all_categories_by_default` 带来的那部分不在这两个列表里，插件另外在当前用户上加了 `mute_enhancements_default_muted_category_ids`，这部分刷新页面后才更新。
+- 浏览器按参数把用户联想的结果缓存 30 秒，搜索框和聊天提及的参数相同，所以焦点进出搜索框时清空这个缓存，免得一边用上另一边的结果。
 
 已知不覆盖：discourse-image-enhancement 的“图片”搜索标签页走自己的 `/image-search/search` 接口，不经过 `Search`，结果里仍可能出现这些内容。
 

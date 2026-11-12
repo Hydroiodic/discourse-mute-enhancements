@@ -28,6 +28,7 @@ require_relative "lib/discourse_mute_enhancements/muted_tags_filter"
 require_relative "lib/discourse_mute_enhancements/muted_categories_filter"
 require_relative "lib/discourse_mute_enhancements/ignored_users_filter"
 require_relative "lib/discourse_mute_enhancements/search_extension"
+require_relative "lib/discourse_mute_enhancements/search_suggestions"
 
 after_initialize do
   require_relative "app/models/discourse_mute_enhancements/group_mute"
@@ -42,7 +43,19 @@ after_initialize do
   reloadable_patch do
     ::Search.prepend(DiscourseMuteEnhancements::SearchExtension)
     ::UserSerializer.prepend(DiscourseMuteEnhancements::UserSerializerExtension)
+    ::UsersController.prepend(
+      DiscourseMuteEnhancements::SearchSuggestions::UsersControllerExtension,
+    )
+    ::TagsController.prepend(DiscourseMuteEnhancements::SearchSuggestions::TagsControllerExtension)
   end
+
+  # Suggestions in the search box (see SearchSuggestions). Present when the search hides muted
+  # categories; the browser reads the other muted categories from core's fields.
+  add_to_serializer(
+    :current_user,
+    :mute_enhancements_default_muted_category_ids,
+    include_condition: -> { SiteSetting.mute_enhancements_search_muted_categories },
+  ) { DiscourseMuteEnhancements::SearchSuggestions.default_muted_category_ids(object) }
 
   Discourse::Application.routes.append do
     put "/mute-enhancements/groups/:group_id/default-users" =>
