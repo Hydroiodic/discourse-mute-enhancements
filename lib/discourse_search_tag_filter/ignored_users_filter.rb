@@ -1,10 +1,10 @@
 # frozen_string_literal: true
 
 module DiscourseSearchTagFilter
-  # Hides what users the searching user ignored wrote: their posts, and topics they started (a
-  # result shows the topic title, even when someone else's reply is what matched). With
-  # `search_tag_filter_muted_users`, users the searching user muted are hidden the same way. Staff
-  # are never hidden, as in topics (IgnoredUser.ignored_ids_for).
+  # Hides what users the searching user ignored (`search_tag_filter_ignored_users`) or muted
+  # (`search_tag_filter_muted_users`) wrote: their posts, and topics they started (a result shows
+  # the topic title, even when someone else's reply is what matched). Staff are never hidden, as
+  # in topics (IgnoredUser.ignored_ids_for).
   #
   # Not hidden:
   #

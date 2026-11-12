@@ -4,4 +4,4 @@ en:
     search_tag_filter_muted_tags: "Hide topics with tags the user muted. Also needs tagging_enabled."
     search_tag_filter_muted_categories: "Hide topics in categories the user muted, including subcategories of muted categories."
     search_tag_filter_ignored_users: "Hide posts by users the user ignored, and topics they started. Staff are never hidden."
-    search_tag_filter_muted_users: "Also hide posts by users the user muted, and topics they started, the same way as ignored users."
+    search_tag_filter_muted_users: "Hide posts by users the user muted, and topics they started, the same way as ignored users. Staff are never hidden."
