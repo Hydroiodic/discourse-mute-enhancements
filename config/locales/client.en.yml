@@ -37,6 +37,14 @@ en:
         saved_and_applied:
           one: "Saved and muted for %{count} member"
           other: "Saved and muted for %{count} members"
+      hide_ignored_topics:
+        title: "Hide topics by ignored users"
+        description: "Members of the group, including those who join later, no longer see topics by users they ignore in topic lists. Members can turn this off in Preferences → Notifications."
+        label: "Turn on for members"
+        saved: "Saved"
+        saved_and_applied:
+          one: "Saved and turned on for %{count} member"
+          other: "Saved and turned on for %{count} members"
   admin_js:
     admin:
       logs:
@@ -45,3 +53,4 @@ en:
             mute_enhancements_group_default_users: "change group default muted users and groups"
             mute_enhancements_group_hide_preferences: "change preference pages hidden from group members"
             mute_enhancements_group_muted_topics: "change topics muted for group members"
+            mute_enhancements_group_hide_ignored_topics: "change hiding topics by ignored users for group members"

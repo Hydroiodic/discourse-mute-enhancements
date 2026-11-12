@@ -29,3 +29,6 @@ plugins:
   mute_enhancements_group_muted_topics:
     default: true
     client: false
+  mute_enhancements_group_hide_ignored_topics:
+    default: true
+    client: false

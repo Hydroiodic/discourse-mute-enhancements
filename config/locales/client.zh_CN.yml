@@ -35,6 +35,13 @@ zh_CN:
         saved: "已保存"
         saved_and_applied:
           other: "已保存，已为 %{count} 位成员设为免打扰"
+      hide_ignored_topics:
+        title: "隐藏被屏蔽用户的话题"
+        description: "群组成员（包括以后加入的）的话题列表里不显示他们屏蔽的用户发的话题，成员可以在 个人设置 → 通知 里自己关掉。"
+        label: "给成员打开"
+        saved: "已保存"
+        saved_and_applied:
+          other: "已保存，已为 %{count} 位成员打开"
   admin_js:
     admin:
       logs:
@@ -43,3 +50,4 @@ zh_CN:
             mute_enhancements_group_default_users: "修改群组默认屏蔽的用户和群组"
             mute_enhancements_group_hide_preferences: "修改对群组成员隐藏的个人设置页面"
             mute_enhancements_group_muted_topics: "修改给群组成员屏蔽的话题"
+            mute_enhancements_group_hide_ignored_topics: "修改是否给群组成员隐藏被屏蔽用户的话题"

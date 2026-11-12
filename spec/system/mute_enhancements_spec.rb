@@ -274,6 +274,30 @@ RSpec.describe "Mute enhancements" do
     end
   end
 
+  describe "hiding topics by ignored users for a group's members" do
+    before do
+      skip("needs the enhanced-ignore plugin") if !SiteSetting.respond_to?(:enhanced_ignore_enabled)
+      SiteSetting.enhanced_ignore_enabled = true
+    end
+
+    it "turns the preference on for every member with the box" do
+      sign_in(admin)
+      visit("/g/#{group.name}/manage/user-preferences")
+
+      checkbox = find(".mute-enhancements-hide-ignored-topics-input")
+      expect(checkbox).not_to be_checked
+      checkbox.click
+
+      expect(page).to have_content(
+        I18n.t("js.mute_enhancements.hide_ignored_topics.saved_and_applied", count: 1),
+      )
+      expect(User.find(member.id).custom_fields["hide_ignored_topics"]).to eq(true)
+
+      page.refresh
+      expect(find(".mute-enhancements-hide-ignored-topics-input")).to be_checked
+    end
+  end
+
   describe "hiding preference pages from a group's members" do
     def hidden_pages = DiscourseMuteEnhancements::HiddenPreferences.group_pages(group)
 
