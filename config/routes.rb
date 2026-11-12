@@ -5,7 +5,7 @@ DiscourseMuteEnhancements::Engine.routes.draw do
     put "/default-users" => "group_default_users#update"
     put "/hide-preferences" => "group_hide_preferences#update"
     put "/muted-topics" => "group_muted_topics#update"
-    put "/hide-ignored-topics" => "group_hide_ignored_topics#update"
+    put "/enhanced-ignore" => "group_enhanced_ignore#update"
   end
 end
 

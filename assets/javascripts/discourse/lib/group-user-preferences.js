@@ -6,7 +6,7 @@ export function hasUserPreferencesPage(group) {
     group?.mute_enhancements_default_users !== undefined ||
     group?.mute_enhancements_hidden_preferences !== undefined ||
     group?.mute_enhancements_muted_topic_ids !== undefined ||
-    group?.mute_enhancements_hide_ignored_topics !== undefined
+    group?.mute_enhancements_enhanced_ignore !== undefined
   );
 }
 
