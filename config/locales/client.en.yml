@@ -29,6 +29,14 @@ en:
           tracking: "Tracking (notification levels of categories and tags, topic tracking)"
           users: "Users (muted and ignored users and groups)"
         saved: "Saved"
+      muted_topics:
+        title: "Topics muted for members"
+        description: "One topic ID per line. Members of the group, including those who join later, get these topics muted."
+        save: "Save muted topics"
+        saved: "Saved"
+        saved_and_applied:
+          one: "Saved and muted for %{count} member"
+          other: "Saved and muted for %{count} members"
   admin_js:
     admin:
       logs:
@@ -36,3 +44,4 @@ en:
           actions:
             mute_enhancements_group_default_users: "change group default muted users and groups"
             mute_enhancements_group_hide_preferences: "change preference pages hidden from group members"
+            mute_enhancements_group_muted_topics: "change topics muted for group members"

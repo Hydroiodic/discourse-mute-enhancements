@@ -4,7 +4,8 @@
 export function hasUserPreferencesPage(group) {
   return (
     group?.mute_enhancements_default_users !== undefined ||
-    group?.mute_enhancements_hidden_preferences !== undefined
+    group?.mute_enhancements_hidden_preferences !== undefined ||
+    group?.mute_enhancements_muted_topic_ids !== undefined
   );
 }
 

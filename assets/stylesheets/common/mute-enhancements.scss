@@ -1,5 +1,19 @@
-.mute-enhancements-user-preferences .control-group + .control-group {
-  margin-top: 2em;
+.mute-enhancements-user-preferences {
+  .control-group + .control-group {
+    margin-top: 2em;
+  }
+
+  .control-instructions {
+    margin-bottom: 1.5em;
+  }
+}
+
+.mute-enhancements-muted-topics textarea {
+  width: 100%;
+  max-width: 500px;
+  min-height: 10em;
+  margin-bottom: 1em;
+  font-family: var(--d-font-family--monospace);
 }
 
 .mute-enhancements-default-users {

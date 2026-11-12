@@ -9,7 +9,9 @@ en:
     mute_enhancements_group_mutes: "Let users mute or ignore whole groups in Preferences → Users. The group's members (except admins and moderators) are muted or ignored, members who join later are too, and members who leave no longer are."
     mute_enhancements_group_default_users: "Let admins choose, on a group's Manage → User preferences page, users that new members of the group mute or ignore by default, and groups too when mute_enhancements_group_mutes is enabled."
     mute_enhancements_group_hide_preferences: "Let admins hide the Tracking and Users pages of the preferences from a group's members (except admins and moderators), each on its own, on the group's Manage → User preferences page. None are hidden by default."
+    mute_enhancements_group_muted_topics: "Let admins enter topic IDs on a group's Manage → User preferences page to set the notification level of every member of the group to Muted for those topics, and of members who join later too. Members can change it back themselves."
   mute_enhancements:
     errors:
       staff_default_users: "Admins and moderators cannot be muted or ignored: %{usernames}"
       invalid_default_groups: "These groups cannot be muted or ignored by default: %{groups}. Automatic groups and the group itself cannot be chosen."
+      invalid_muted_topics: "These topics were not found: %{topics}. Enter one topic ID per line; personal messages cannot be added."

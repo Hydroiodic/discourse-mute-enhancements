@@ -2,7 +2,8 @@
 
 module DiscourseMuteEnhancements
   # Users that a group's members mute or ignore by default, set by admins on the group's
-  # Manage → User preferences page. Works like core's default category and tag notification levels for a group:
+  # Manage → User preferences page. Works like core's default category and tag notification
+  # levels for a group:
   #
   # - a user who joins the group gets a muted_users / ignored_users row of their own for each
   #   default user, unless they already have one for that user (muted or ignored); they can

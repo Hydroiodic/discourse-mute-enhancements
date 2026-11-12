@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 # name: discourse-mute-enhancements
-# about: Keeps what a user muted or ignored out of search, lets users mute or ignore whole groups, and lets admins set default muted and ignored users for a group's members and hide some preference pages from them.
+# about: Keeps what a user muted or ignored out of search, lets users mute or ignore whole groups, and lets admins set default muted and ignored users and muted topics for a group's members and hide some preference pages from them.
 # version: 0.3
 # authors: Hydroiodic
 
@@ -39,9 +39,11 @@ after_initialize do
   require_relative "lib/discourse_mute_enhancements/group_default_users"
   require_relative "lib/discourse_mute_enhancements/group_default_groups"
   require_relative "lib/discourse_mute_enhancements/hidden_preferences"
+  require_relative "lib/discourse_mute_enhancements/group_muted_topics"
   require_relative "lib/discourse_mute_enhancements/user_serializer_extension"
   require_relative "app/controllers/discourse_mute_enhancements/group_default_users_controller"
   require_relative "app/controllers/discourse_mute_enhancements/group_hide_preferences_controller"
+  require_relative "app/controllers/discourse_mute_enhancements/group_muted_topics_controller"
   require_relative "app/jobs/scheduled/mute_enhancements_reconcile_group_mutes"
 
   reloadable_patch do
@@ -76,6 +78,11 @@ after_initialize do
     end
     put "/mute-enhancements/groups/:group_id/hide-preferences" =>
           "discourse_mute_enhancements/group_hide_preferences#update",
+        :constraints => {
+          group_id: /\d+/,
+        }
+    put "/mute-enhancements/groups/:group_id/muted-topics" =>
+          "discourse_mute_enhancements/group_muted_topics#update",
         :constraints => {
           group_id: /\d+/,
         }
@@ -114,7 +121,7 @@ after_initialize do
   end
 
   # Group → Manage → User preferences (admins only): default muted and ignored users and groups
-  # for the group's members, and preference pages hidden from them
+  # for the group's members, preference pages hidden from them and topics muted for them
 
   add_to_serializer(
     :group_show,
@@ -140,6 +147,14 @@ after_initialize do
     end,
   ) { DiscourseMuteEnhancements::HiddenPreferences.group_pages(object) }
 
+  add_to_serializer(
+    :group_show,
+    :mute_enhancements_muted_topic_ids,
+    include_condition: -> do
+      DiscourseMuteEnhancements::GroupMutedTopics.enabled? && scope.is_admin? && !object.automatic
+    end,
+  ) { DiscourseMuteEnhancements::GroupMutedTopics.topic_ids(object) }
+
   # Present only for members with hidden pages.
   add_to_serializer(
     :current_user,
@@ -160,6 +175,7 @@ after_initialize do
   on(:user_added_to_group) do |user, group, **|
     DiscourseMuteEnhancements::GroupDefaultUsers.apply(group, [user.id])
     DiscourseMuteEnhancements::GroupDefaultGroups.apply(group, [user.id])
+    DiscourseMuteEnhancements::GroupMutedTopics.apply(group, [user.id])
     DiscourseMuteEnhancements::GroupMutes.member_changed(group, user)
   end
 

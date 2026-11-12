@@ -230,6 +230,47 @@ RSpec.describe "Mute enhancements" do
       find(".user-secondary-navigation a[href$='/manage/user-preferences']").click
       expect(page).to have_css(".mute-enhancements-default-users")
       expect(page).to have_css(".mute-enhancements-hide-preferences")
+      expect(page).to have_css(".mute-enhancements-muted-topics")
+    end
+  end
+
+  describe "muting topics for a group's members" do
+    fab!(:topic)
+    fab!(:other_topic, :topic)
+
+    def level(target) = TopicUser.find_by(user: member, topic: target)&.notification_level
+
+    it "mutes the topics in the box for every member" do
+      sign_in(admin)
+      visit("/g/#{group.name}/manage/user-preferences")
+
+      expect(page).to have_css(".mute-enhancements-save-muted-topics[disabled]")
+      find("#mute-enhancements-muted-topics-input").fill_in(with: "#{topic.id}\n#{other_topic.id}")
+      find(".mute-enhancements-save-muted-topics").click
+
+      expect(page).to have_css(".mute-enhancements-save-muted-topics[disabled]")
+      expect(page).to have_content(
+        I18n.t("js.mute_enhancements.muted_topics.saved_and_applied", count: 1),
+      )
+      expect(level(topic)).to eq(TopicUser.notification_levels[:muted])
+      expect(level(other_topic)).to eq(TopicUser.notification_levels[:muted])
+
+      page.refresh
+      expect(find("#mute-enhancements-muted-topics-input").value).to eq(
+        "#{topic.id}\n#{other_topic.id}",
+      )
+    end
+
+    it "shows what was wrong and keeps the box as it was typed" do
+      sign_in(admin)
+      visit("/g/#{group.name}/manage/user-preferences")
+
+      find("#mute-enhancements-muted-topics-input").fill_in(with: "#{topic.id}\nabc")
+      find(".mute-enhancements-save-muted-topics").click
+
+      expect(page).to have_css(".dialog-body", text: "abc")
+      expect(find("#mute-enhancements-muted-topics-input").value).to eq("#{topic.id}\nabc")
+      expect(level(topic)).to be_nil
     end
   end
 
