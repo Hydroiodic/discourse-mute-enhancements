@@ -22,17 +22,10 @@ function addedItems(current, saved) {
   return current.filter((item) => !saved.includes(item)).length;
 }
 
-// Group → Manage → Membership (admins only): users, and groups when group mutes are enabled, that
-// members of the group mute or ignore by default. Has its own Save button, as the page's Save
-// button only saves core's fields.
+// Group → Manage → User preferences (admins only): users, and groups when group mutes are enabled,
+// that members of the group mute or ignore by default. Has its own Save button, as the hidden
+// pages on the same page are saved as soon as they change.
 export default class MuteEnhancementsDefaultUsers extends Component {
-  static shouldRender(args) {
-    return (
-      !!args.model?.id &&
-      args.model.mute_enhancements_default_users !== undefined
-    );
-  }
-
   @service modal;
   @service toasts;
 
@@ -43,7 +36,7 @@ export default class MuteEnhancementsDefaultUsers extends Component {
   @tracked saving = false;
 
   get group() {
-    return this.args.outletArgs.model;
+    return this.args.group;
   }
 
   get saved() {
@@ -187,13 +180,12 @@ export default class MuteEnhancementsDefaultUsers extends Component {
         {{/if}}
       </label>
       <div class="control-instructions">
-        {{i18n "mute_enhancements.default_users.description"}}
+        {{#if this.withGroups}}
+          {{i18n "mute_enhancements.default_users.description_with_groups"}}
+        {{else}}
+          {{i18n "mute_enhancements.default_users.description"}}
+        {{/if}}
       </div>
-      {{#if this.withGroups}}
-        <div class="control-instructions">
-          {{i18n "mute_enhancements.default_users.groups_description"}}
-        </div>
-      {{/if}}
 
       <label>
         {{dIcon "far-eye-slash"}}
@@ -245,12 +237,14 @@ export default class MuteEnhancementsDefaultUsers extends Component {
         />
       {{/if}}
 
-      <DButton
-        class="btn-default mute-enhancements-save-default-users"
-        @action={{this.save}}
-        @disabled={{if this.dirty this.saving true}}
-        @label="mute_enhancements.default_users.save"
-      />
+      <div>
+        <DButton
+          class="btn-default mute-enhancements-save-default-users"
+          @action={{this.save}}
+          @disabled={{if this.dirty this.saving true}}
+          @label="mute_enhancements.default_users.save"
+        />
+      </div>
     </div>
   </template>
 }

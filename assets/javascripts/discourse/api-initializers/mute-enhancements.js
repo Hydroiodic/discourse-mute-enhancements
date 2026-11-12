@@ -1,10 +1,12 @@
 import { apiInitializer } from "discourse/lib/api";
+import setupGroupUserPreferences from "../lib/group-user-preferences";
 import setupHiddenPreferences from "../lib/hidden-preferences";
 import setupSearchSuggestions from "../lib/search-suggestions";
 
 export default apiInitializer((api) => {
   setupSearchSuggestions(api);
   setupHiddenPreferences(api);
+  setupGroupUserPreferences(api);
 
   // Saved by the Save button of preferences → Users. Both are comma-separated group ids; the
   // server only accepts them when group mutes are enabled.

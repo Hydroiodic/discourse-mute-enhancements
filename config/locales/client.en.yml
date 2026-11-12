@@ -9,8 +9,8 @@ en:
       default_users:
         title: "Users new members mute or ignore"
         title_with_groups: "Users and groups new members mute or ignore"
-        description: "When someone joins this group, they ignore or mute the users below, unless they already set them otherwise. This goes into the member's own preferences, so they can undo it later; leaving the group or removing a user here does not undo it. Admins and moderators cannot be muted or ignored. Only admins can see and change this."
-        groups_description: "The same goes for groups: someone who joins ignores or mutes the groups below, unless they already muted or ignored that group, just as if they had chosen it in Preferences → Users, so people who join that group later are muted or ignored too. Hidden groups can be chosen too, but members will see their names in their preferences and can tell who is in them from who gets muted or ignored."
+        description: "When someone joins this group, they ignore or mute the users below."
+        description_with_groups: "When someone joins this group, they ignore or mute the users and groups below."
         ignored: "Ignored users"
         muted: "Muted users"
         ignored_groups: "Ignored groups"
@@ -20,16 +20,19 @@ en:
         saved_and_applied:
           one: "Saved and applied to %{count} existing member"
           other: "Saved and applied to %{count} existing members"
+      group_user_preferences:
+        title: "User preferences"
       hide_preferences:
-        title: "Members' preferences"
-        label: "Members of this group do not see the Notifications and Users pages of their preferences"
-        description: "Members of this group (except admins and moderators) do not see these two pages in their preferences, and links to them go to Account instead. This only hides the pages: what is already set on them still applies, and members can still mute or ignore people from user cards. Saved as soon as you change it; members see the change after reloading the page. Only admins can see and change this."
-        turned_on: "The two pages are now hidden from members of this group"
-        turned_off: "Members of this group can see the two pages again"
+        title: "Preference pages hidden from members"
+        description: "Members of this group do not see the checked pages in their preferences."
+        pages:
+          tracking: "Tracking (notification levels of categories and tags, topic tracking)"
+          users: "Users (muted and ignored users and groups)"
+        saved: "Saved"
   admin_js:
     admin:
       logs:
         staff_actions:
           actions:
             mute_enhancements_group_default_users: "change group default muted users and groups"
-            mute_enhancements_group_hide_preferences: "change hidden preference pages for group members"
+            mute_enhancements_group_hide_preferences: "change preference pages hidden from group members"

@@ -160,7 +160,7 @@ RSpec.describe "Mute enhancements" do
 
     it "saves the defaults and applies them to current members when asked" do
       sign_in(admin)
-      visit("/g/#{group.name}/manage/membership")
+      visit("/g/#{group.name}/manage/user-preferences")
 
       default_muted.expand
       default_muted.search(spammer.username)
@@ -185,7 +185,7 @@ RSpec.describe "Mute enhancements" do
       spam_group.add(spammer)
 
       sign_in(admin)
-      visit("/g/#{group.name}/manage/membership")
+      visit("/g/#{group.name}/manage/user-preferences")
 
       default_ignored_groups.expand
       expect(default_ignored_groups).to have_no_option_value(group.id)
@@ -211,49 +211,93 @@ RSpec.describe "Mute enhancements" do
       visit("/g/#{group.name}/manage/membership")
 
       expect(page).to have_css(".group-form-automatic-membership-automatic")
+      expect(page).to have_no_css("a[href$='/manage/user-preferences']")
+
+      visit("/g/#{group.name}/manage/user-preferences")
+      expect(page).to have_current_path("/g/#{group.name}/manage/profile")
       expect(page).to have_no_css(".mute-enhancements-default-users")
-      expect(page).to have_no_css(".mute-enhancements-hide-preferences")
+    end
+  end
+
+  describe "the User preferences tab of a group" do
+    it "comes right after Membership" do
+      sign_in(admin)
+      visit("/g/#{group.name}/manage/profile")
+
+      tabs = all(".user-secondary-navigation li a").map { |link| link[:href].split("/").last }
+      expect(tabs.each_cons(2)).to include(%w[membership user-preferences])
+
+      find(".user-secondary-navigation a[href$='/manage/user-preferences']").click
+      expect(page).to have_css(".mute-enhancements-default-users")
+      expect(page).to have_css(".mute-enhancements-hide-preferences")
     end
   end
 
   describe "hiding preference pages from a group's members" do
-    it "is turned on by admins on the group's Membership page" do
-      sign_in(admin)
-      visit("/g/#{group.name}/manage/membership")
+    def hidden_pages = DiscourseMuteEnhancements::HiddenPreferences.group_pages(group)
 
-      find(".mute-enhancements-hide-preferences-checkbox").click
+    it "is set by admins with a box for each page" do
+      sign_in(admin)
+      visit("/g/#{group.name}/manage/user-preferences")
+
+      expect(page).to have_no_css(".mute-enhancements-hide-preferences-notifications")
+
+      find(".mute-enhancements-hide-preferences-users").click
+      expect(page).to have_css(".mute-enhancements-hide-preferences-users:checked:not([disabled])")
+      expect(hidden_pages).to eq(%w[users])
+
+      find(".mute-enhancements-hide-preferences-tracking").click
       expect(page).to have_css(
-        ".mute-enhancements-hide-preferences-checkbox:checked:not([disabled])",
+        ".mute-enhancements-hide-preferences-tracking:checked:not([disabled])",
       )
-      expect(DiscourseMuteEnhancements::HiddenPreferences.group_enabled?(group)).to eq(true)
+      expect(hidden_pages).to eq(%w[tracking users])
+
+      find(".mute-enhancements-hide-preferences-users").click
+      expect(page).to have_css(
+        ".mute-enhancements-hide-preferences-users:not(:checked):not([disabled])",
+      )
+      expect(hidden_pages).to eq(%w[tracking])
 
       page.refresh
-      expect(page).to have_css(".mute-enhancements-hide-preferences-checkbox:checked")
+      expect(page).to have_css(".mute-enhancements-hide-preferences-tracking:checked")
+      expect(page).to have_css(".mute-enhancements-hide-preferences-users:not(:checked)")
     end
 
-    it "hides the Notifications and Users pages from members" do
-      DiscourseMuteEnhancements::HiddenPreferences.update(group, true)
+    it "hides the Tracking and Users pages from members" do
+      DiscourseMuteEnhancements::HiddenPreferences.update(group, %w[tracking users])
       sign_in(member)
 
       visit("/u/#{member.username}/preferences/account")
-      expect(page).to have_css(".user-nav__preferences-account")
-      expect(page).to have_no_css(".user-nav__preferences-notifications")
+      expect(page).to have_css(".user-nav__preferences-notifications")
+      expect(page).to have_no_css(".user-nav__preferences-tracking")
       expect(page).to have_no_css(".user-nav__preferences-users")
 
-      visit("/u/#{member.username}/preferences/users")
-      expect(page).to have_current_path("/u/#{member.username}/preferences/account")
+      %w[users tracking tags].each do |hidden|
+        visit("/u/#{member.username}/preferences/#{hidden}")
+        expect(page).to have_current_path("/u/#{member.username}/preferences/account")
+      end
 
       visit("/u/#{member.username}/preferences/notifications")
-      expect(page).to have_current_path("/u/#{member.username}/preferences/account")
+      expect(page).to have_current_path("/u/#{member.username}/preferences/notifications")
+    end
+
+    it "only hides the pages that were chosen" do
+      DiscourseMuteEnhancements::HiddenPreferences.update(group, %w[users])
+      sign_in(member)
+
+      visit("/u/#{member.username}/preferences/tracking")
+      expect(page).to have_current_path("/u/#{member.username}/preferences/tracking")
+      expect(page).to have_css(".user-nav__preferences-tracking")
+      expect(page).to have_no_css(".user-nav__preferences-users")
     end
 
     it "keeps the pages for everyone else" do
-      DiscourseMuteEnhancements::HiddenPreferences.update(group, true)
+      DiscourseMuteEnhancements::HiddenPreferences.update(group, %w[tracking users])
       sign_in(user)
 
       visit("/u/#{user.username}/preferences/users")
       expect(page).to have_current_path("/u/#{user.username}/preferences/users")
-      expect(page).to have_css(".user-nav__preferences-notifications")
+      expect(page).to have_css(".user-nav__preferences-tracking")
     end
 
     context "with the user navigation in the sidebar" do
@@ -261,23 +305,23 @@ RSpec.describe "Mute enhancements" do
 
       def sidebar_link(name) = "[data-list-item-name='user-nav-preferences-#{name}']"
 
-      it "hides the two pages there too" do
-        DiscourseMuteEnhancements::HiddenPreferences.update(group, true)
+      it "hides the pages there too" do
+        DiscourseMuteEnhancements::HiddenPreferences.update(group, %w[tracking users])
         sign_in(member)
 
         visit("/u/#{member.username}/preferences/account")
         expect(page).to have_css(sidebar_link("account"))
-        expect(page).to have_css(sidebar_link("tracking"))
-        expect(page).to have_no_css(sidebar_link("notifications"))
+        expect(page).to have_css(sidebar_link("notifications"))
+        expect(page).to have_no_css(sidebar_link("tracking"))
         expect(page).to have_no_css(sidebar_link("users"))
       end
 
       it "keeps them for everyone else" do
-        DiscourseMuteEnhancements::HiddenPreferences.update(group, true)
+        DiscourseMuteEnhancements::HiddenPreferences.update(group, %w[tracking users])
         sign_in(user)
 
         visit("/u/#{user.username}/preferences/account")
-        expect(page).to have_css(sidebar_link("notifications"))
+        expect(page).to have_css(sidebar_link("tracking"))
         expect(page).to have_css(sidebar_link("users"))
       end
     end

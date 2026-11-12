@@ -2,7 +2,7 @@
 
 module DiscourseMuteEnhancements
   # Groups that a group's members mute or ignore by default, set by admins next to the default
-  # users (GroupDefaultUsers) on the group's Membership page. A member who joins gets a group mute
+  # users (GroupDefaultUsers) on the group's Manage → User preferences page. A member who joins gets a group mute
   # of their own (see GroupMutes) for each of them, as if they had muted or ignored the group in
   # their preferences, so it follows that group's members from then on. Otherwise it works like
   # the default users:
@@ -47,7 +47,7 @@ module DiscourseMuteEnhancements
       Group.where(id: ids).order(:name).pluck(:name)
     end
 
-    # What the Membership page offers.
+    # What the User preferences page offers.
     def self.choosable_groups(group)
       eligible_groups(group).order(:name)
     end

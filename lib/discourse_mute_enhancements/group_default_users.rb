@@ -2,7 +2,7 @@
 
 module DiscourseMuteEnhancements
   # Users that a group's members mute or ignore by default, set by admins on the group's
-  # Membership page. Works like core's default category and tag notification levels for a group:
+  # Manage → User preferences page. Works like core's default category and tag notification levels for a group:
   #
   # - a user who joins the group gets a muted_users / ignored_users row of their own for each
   #   default user, unless they already have one for that user (muted or ignored); they can
@@ -11,7 +11,7 @@ module DiscourseMuteEnhancements
   # - when a default is added, admins choose whether current members get it too.
   #
   # Staff cannot be muted or ignored in core, so they cannot be defaults. Automatic groups have no
-  # defaults, as they have no Membership page.
+  # defaults, as their members are not added by hand.
   module GroupDefaultUsers
     class InvalidUsers < StandardError
     end

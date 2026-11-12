@@ -9,8 +9,8 @@ zh_CN:
       default_users:
         title: "新成员默认屏蔽的用户"
         title_with_groups: "新成员默认屏蔽的用户和群组"
-        description: "用户加入这个群组时，自动把下面的用户设为忽略或免打扰（成员已经单独设置过的除外）。设置记在成员自己的偏好设置里，成员之后可以自己取消；退出群组或删掉这里的用户都不会撤销。管理员和版主不能被屏蔽。只有管理员能看到和修改这一项。"
-        groups_description: "群组也一样：成员加入时，自动把下面的群组设为忽略或免打扰（成员已经设置过这个群组的除外），效果和成员自己在 个人设置 → 用户 里设置相同，那个群组以后的新成员也会被屏蔽。隐藏的群组也可以选，但成员会在个人设置里看到它的名字，也能从被屏蔽的人推出群组里有谁。"
+        description: "成员加入这个群组时，自动忽略或免打扰下面的用户。"
+        description_with_groups: "成员加入这个群组时，自动忽略或免打扰下面的用户和群组。"
         ignored: "忽略的用户"
         muted: "免打扰的用户"
         ignored_groups: "忽略的群组"
@@ -19,16 +19,19 @@ zh_CN:
         saved: "已保存"
         saved_and_applied:
           other: "已保存，并应用到 %{count} 位现有成员"
+      group_user_preferences:
+        title: "用户偏好"
       hide_preferences:
-        title: "成员的个人设置"
-        label: "群组成员看不到个人设置里的“通知”和“用户”两个页面"
-        description: "打开后，这个群组的成员（管理员和版主除外）在个人设置里看不到这两个页面，打开指向它们的链接会转到“账户”。只是隐藏页面：上面已有的设置照常生效，成员也仍能在用户卡片上忽略或免打扰别人。改动立即保存，成员刷新页面后生效。只有管理员能看到和修改这一项。"
-        turned_on: "已对这个群组的成员隐藏这两个页面"
-        turned_off: "这个群组的成员可以看到这两个页面了"
+        title: "对成员隐藏的个人设置页面"
+        description: "勾选的页面，这个群组的成员在个人设置里看不到。"
+        pages:
+          tracking: "跟踪（类别、标签的通知级别和话题跟踪）"
+          users: "用户（免打扰、忽略的用户和群组）"
+        saved: "已保存"
   admin_js:
     admin:
       logs:
         staff_actions:
           actions:
             mute_enhancements_group_default_users: "修改群组默认屏蔽的用户和群组"
-            mute_enhancements_group_hide_preferences: "修改是否对群组成员隐藏个人设置页面"
+            mute_enhancements_group_hide_preferences: "修改对群组成员隐藏的个人设置页面"

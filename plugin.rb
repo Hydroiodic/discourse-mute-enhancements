@@ -67,6 +67,13 @@ after_initialize do
         :constraints => {
           group_id: /\d+/,
         }
+    # Lets the browser open Group → Manage → User preferences directly, like core's other tabs.
+    %w[groups g].each do |root_path|
+      get "#{root_path}/:name/manage/user-preferences" => "groups#show",
+          :constraints => {
+            name: RouteFormat.username,
+          }
+    end
     put "/mute-enhancements/groups/:group_id/hide-preferences" =>
           "discourse_mute_enhancements/group_hide_preferences#update",
         :constraints => {
@@ -106,7 +113,8 @@ after_initialize do
     DiscourseMuteEnhancements::GroupMutes.apply_user_update(user, attributes)
   end
 
-  # Default muted and ignored users and groups for a group's members (group → Manage → Membership)
+  # Group → Manage → User preferences (admins only): default muted and ignored users and groups
+  # for the group's members, and preference pages hidden from them
 
   add_to_serializer(
     :group_show,
@@ -124,22 +132,25 @@ after_initialize do
     end,
   ) { DiscourseMuteEnhancements::GroupDefaultGroups.serialize(object) }
 
-  # Preference pages hidden from a group's members (group → Manage → Membership)
-
   add_to_serializer(
     :group_show,
-    :mute_enhancements_hide_preferences,
+    :mute_enhancements_hidden_preferences,
     include_condition: -> do
       DiscourseMuteEnhancements::HiddenPreferences.enabled? && scope.is_admin? && !object.automatic
     end,
-  ) { DiscourseMuteEnhancements::HiddenPreferences.group_enabled?(object) }
+  ) { DiscourseMuteEnhancements::HiddenPreferences.group_pages(object) }
 
-  # Present only for members whose pages are hidden.
+  # Present only for members with hidden pages.
   add_to_serializer(
     :current_user,
     :mute_enhancements_hidden_preferences,
-    include_condition: -> { DiscourseMuteEnhancements::HiddenPreferences.hidden_for?(object) },
-  ) { DiscourseMuteEnhancements::HiddenPreferences::PAGES }
+    include_condition: -> do
+      (
+        @mute_enhancements_hidden_pages ||=
+          DiscourseMuteEnhancements::HiddenPreferences.hidden_pages(object)
+      ).present?
+    end,
+  ) { @mute_enhancements_hidden_pages }
 
   # Keeping them in sync with group membership
 
